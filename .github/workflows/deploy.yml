@@ -26,9 +26,9 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # 2) Deploy: SSH no VPS (porta 2222) com o usuário "steffan" autenticando por
-  #    senha; os comandos que exigem root usam sudo (mesma senha via -S).
-  #    Grava o .env a partir dos secrets, builda e sobe os containers
-  #    (Caddy + app). As migrations rodam no start do container.
+  #    senha. Apenas os comandos que exigem root usam sudo (mkdir em /opt,
+  #    docker). git e .env rodam como steffan (dono do diretório). O app sobe em
+  #    container publicando na porta de host 3005. As migrations rodam no start.
   # ---------------------------------------------------------------------------
   deploy:
     name: Deploy no VPS
@@ -40,6 +40,7 @@ jobs:
         uses: appleboy/ssh-action@v1.2.0
         env:
           REPO_URL: https://github.com/${{ github.repository }}.git
+          APP_DIR: ${{ secrets.APP_DIR }}
           VPS_SSH_PASSWORD: ${{ secrets.VPS_SSH_PASSWORD }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
@@ -57,30 +58,38 @@ jobs:
           port: 2222
           username: steffan
           password: ${{ secrets.VPS_SSH_PASSWORD }}
-          envs: REPO_URL,VPS_SSH_PASSWORD,DATABASE_URL,SESSION_SECRET,DOC_ENCRYPTION_KEY,POSTGRES_NETWORK,MAIL_FROM,DPO_CONTATO,STORAGE_DRIVER,WEBDAV_BASE_URL,WEBDAV_USER,WEBDAV_PASS,WEBDAV_ROOT
+          envs: REPO_URL,APP_DIR,VPS_SSH_PASSWORD,DATABASE_URL,SESSION_SECRET,DOC_ENCRYPTION_KEY,POSTGRES_NETWORK,MAIL_FROM,DPO_CONTATO,STORAGE_DRIVER,WEBDAV_BASE_URL,WEBDAV_USER,WEBDAV_PASS,WEBDAV_ROOT
           script_stop: true
           script: |
             set -eu
-            APP_DIR=/opt/processos-seletivos
+            APP_DIR="${APP_DIR:-/opt/processo-seletivo}"
             # executa um comando como root usando a senha do steffan (sudo -S)
             S() { printf '%s\n' "$VPS_SSH_PASSWORD" | sudo -S -p '' "$@"; }
 
-            echo "==> Preparando diretório (root) e cedendo a posse ao steffan"
+            echo "==> Ambiente: git=$(command -v git || echo AUSENTE) | docker=$(command -v docker || echo AUSENTE) | dir=$APP_DIR"
+
+            if ! command -v git >/dev/null 2>&1; then
+              echo "==> git ausente; instalando via apt"
+              S apt-get update -y
+              S apt-get install -y git
+            fi
+
+            echo "==> Preparando $APP_DIR (root) e cedendo posse ao steffan"
             S mkdir -p "$APP_DIR"
             S chown -R steffan:steffan "$APP_DIR"
 
             echo "==> Sincronizando o repositório"
-            cd "$APP_DIR"
-            if [ -d .git ]; then
-              git fetch --depth=1 origin main
-              git reset --hard origin/main
+            if [ -d "$APP_DIR/.git" ]; then
+              git -C "$APP_DIR" fetch --depth=1 origin main
+              git -C "$APP_DIR" reset --hard origin/main
             else
-              git clone --depth=1 "$REPO_URL" .
+              find "$APP_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
+              git clone --depth=1 "$REPO_URL" "$APP_DIR"
             fi
 
             echo "==> Gravando .env de produção (a partir dos GitHub Secrets)"
             umask 077
-            cat > .env <<ENVEOF
+            cat > "$APP_DIR/.env" <<ENVEOF
             NODE_ENV=production
             PORT=3000
             HOST=0.0.0.0
@@ -104,6 +113,7 @@ jobs:
             ENVEOF
 
             echo "==> Build e subida dos containers (root)"
+            cd "$APP_DIR"
             S docker compose build
             S docker compose up -d --remove-orphans
             S docker image prune -f
@@ -111,4 +121,4 @@ jobs:
             echo "==> Healthcheck"
             sleep 6
             S docker compose ps
-            S docker compose exec -T app node -e "fetch('http://127.0.0.1:3000/health').then(r=>{console.log('health:',r.status);process.exit(r.ok?0:1)}).catch(e=>{console.log('health erro:',e.message);process.exit(1)})" || echo "aviso: healthcheck ainda não respondeu (o container pode estar subindo)"
+            S docker compose exec -T app node -e "fetch('http://127.0.0.1:3000/health').then(r=>{console.log('health:',r.status);process.exit(r.ok?0:1)}).catch(e=>{console.log('health erro:',e.message);process.exit(1)})" || echo "aviso: healthcheck ainda não respondeu (container pode estar subindo)"
