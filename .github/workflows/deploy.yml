@@ -59,32 +59,30 @@ jobs:
           username: steffan
           password: ${{ secrets.VPS_SSH_PASSWORD }}
           envs: REPO_URL,APP_DIR,VPS_SSH_PASSWORD,DATABASE_URL,SESSION_SECRET,DOC_ENCRYPTION_KEY,POSTGRES_NETWORK,MAIL_FROM,DPO_CONTATO,STORAGE_DRIVER,WEBDAV_BASE_URL,WEBDAV_USER,WEBDAV_PASS,WEBDAV_ROOT
-          script_stop: true
           script: |
-            set -eu
+            set -u
             APP_DIR="${APP_DIR:-/opt/processo-seletivo}"
             # executa um comando como root usando a senha do steffan (sudo -S)
             S() { printf '%s\n' "$VPS_SSH_PASSWORD" | sudo -S -p '' "$@"; }
+            fail() { echo "DEPLOY FALHOU: $1"; exit 1; }
 
-            echo "==> Ambiente: git=$(command -v git || echo AUSENTE) | docker=$(command -v docker || echo AUSENTE) | dir=$APP_DIR"
+            echo "==> Ambiente: git=$(command -v git || echo AUSENTE) docker=$(command -v docker || echo AUSENTE)"
+            echo "==> APP_DIR=$APP_DIR"
+            echo "==> REPO_URL=[${REPO_URL:-VAZIO}]"
 
-            if ! command -v git >/dev/null 2>&1; then
-              echo "==> git ausente; instalando via apt"
-              S apt-get update -y
-              S apt-get install -y git
-            fi
+            command -v git >/dev/null 2>&1 || { echo "==> instalando git"; S apt-get update -y && S apt-get install -y git; }
 
             echo "==> Preparando $APP_DIR (root) e cedendo posse ao steffan"
-            S mkdir -p "$APP_DIR"
-            S chown -R steffan:steffan "$APP_DIR"
+            S mkdir -p "$APP_DIR" || fail "mkdir $APP_DIR"
+            S chown -R steffan:steffan "$APP_DIR" || fail "chown $APP_DIR"
 
             echo "==> Sincronizando o repositório"
             if [ -d "$APP_DIR/.git" ]; then
-              git -C "$APP_DIR" fetch --depth=1 origin main
-              git -C "$APP_DIR" reset --hard origin/main
+              git -C "$APP_DIR" fetch --depth=1 origin main 2>&1 || fail "git fetch"
+              git -C "$APP_DIR" reset --hard origin/main 2>&1 || fail "git reset"
             else
-              find "$APP_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
-              git clone --depth=1 "$REPO_URL" "$APP_DIR"
+              ( cd "$APP_DIR" && find . -mindepth 1 -maxdepth 1 -exec rm -rf {} + ) 2>/dev/null || true
+              git clone --depth=1 "$REPO_URL" "$APP_DIR" 2>&1 || fail "git clone (verifique REPO_URL e a saída acima)"
             fi
 
             echo "==> Gravando .env de produção (a partir dos GitHub Secrets)"
@@ -114,11 +112,15 @@ jobs:
 
             echo "==> Build e subida dos containers (root)"
             cd "$APP_DIR"
-            S docker compose build
-            S docker compose up -d --remove-orphans
-            S docker image prune -f
+            S docker compose build 2>&1 || fail "docker compose build"
+            S docker compose up -d --remove-orphans 2>&1 || fail "docker compose up"
+            S docker image prune -f >/dev/null 2>&1 || true
 
             echo "==> Healthcheck"
             sleep 6
             S docker compose ps
-            S docker compose exec -T app node -e "fetch('http://127.0.0.1:3000/health').then(r=>{console.log('health:',r.status);process.exit(r.ok?0:1)}).catch(e=>{console.log('health erro:',e.message);process.exit(1)})" || echo "aviso: healthcheck ainda não respondeu (container pode estar subindo)"
+            if S docker compose exec -T app node -e "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then
+              echo "==> Deploy OK — app saudável na porta interna 3000 (publicada em 3005)"
+            else
+              echo "==> aviso: healthcheck ainda não respondeu (o container pode estar subindo)"
+            fi
