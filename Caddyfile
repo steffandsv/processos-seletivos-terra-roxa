@@ -1,0 +1,19 @@
+# HTTPS automático via Let's Encrypt quando DOMAIN é um host público (§3).
+# Em localhost, o Caddy usa certificado interno.
+{$DOMAIN:localhost} {
+	encode gzip zstd
+	reverse_proxy app:3000
+
+	# Cabeçalhos de segurança adicionais (defesa em profundidade).
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+		-Server
+	}
+
+	# Limite de corpo (uploads de até 8 MB + folga para multipart).
+	request_body {
+		max_size 12MB
+	}
+}

@@ -1,0 +1,63 @@
+<%- include('partials/head') %>
+<% var v = (typeof valores !== 'undefined' && valores) ? valores : {}; %>
+<p class="meta"><a href="/editais/<%= edital.id %>">&larr; <%= edital.numero %></a></p>
+<h1>Inscrição — <%= edital.titulo %></h1>
+
+<% if (cargosDisponiveis.length === 0) { %>
+  <div class="card vazio">Não há cargos disponíveis para nova inscrição neste edital.</div>
+<% } else { %>
+<form action="/editais/<%= edital.id %>/inscrever" method="post" enctype="multipart/form-data" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <div class="card">
+    <h2>Escolha da vaga</h2>
+    <label for="cargoId">Cargo<% if (flags.permite_multiplas_vagas) { %> <span class="opcional">(você pode se inscrever em mais de um cargo)</span><% } %></label>
+    <select id="cargoId" name="cargoId" required <%= erros.cargoId ? 'aria-invalid="true"' : '' %>>
+      <option value="">— selecione —</option>
+      <% cargosDisponiveis.forEach(function(c){ %>
+        <option value="<%= c.id %>" <%= String(v.cargoId) === String(c.id) ? 'selected' : '' %>><%= c.nome %> (<%= c.qtdVagas %> vaga(s))</option>
+      <% }); %>
+    </select>
+    <% if (erros.cargoId) { %><p class="erro-campo"><%= erros.cargoId %></p><% } %>
+  </div>
+
+  <% if (flags.exige_documento_foto) { %>
+    <div class="card">
+      <h2>Documento com foto</h2>
+      <p class="dica">Aceitos: RG, CNH, CTPS digital, Passaporte ou RNM. Formatos PDF, JPG ou PNG, até 8 MB. Obrigatório.</p>
+      <label for="documento">Arquivo do documento</label>
+      <input id="documento" name="documento" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required <%= erros.documento ? 'aria-invalid="true"' : '' %>>
+      <% if (erros.documento) { %><p class="erro-campo"><%= erros.documento %></p><% } %>
+    </div>
+  <% } %>
+
+  <% if (flags.fase_atendimento_especial) { %>
+    <fieldset>
+      <legend>Atendimento especial na prova <span class="opcional">(opcional)</span></legend>
+      <p class="dica">Preencha apenas se necessitar de condição especial para realizar a prova.</p>
+      <label for="atendimento_tipo">Tipo de necessidade</label>
+      <input id="atendimento_tipo" name="atendimento_tipo" value="<%= v.atendimento_tipo || '' %>" placeholder="Ex.: prova ampliada, tempo adicional, sala acessível">
+      <label for="atendimento_descricao">Detalhes <span class="opcional">(opcional)</span></label>
+      <textarea id="atendimento_descricao" name="atendimento_descricao" rows="3"><%= v.atendimento_descricao || '' %></textarea>
+      <label for="laudo">Laudo <span class="opcional">(opcional, PDF/JPG/PNG)</span></label>
+      <input id="laudo" name="laudo" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" <%= erros.laudo ? 'aria-invalid="true"' : '' %>>
+      <% if (erros.laudo) { %><p class="erro-campo"><%= erros.laudo %></p><% } %>
+    </fieldset>
+  <% } %>
+
+  <div class="card">
+    <h2>Termo de aceite</h2>
+    <div class="check-linha">
+      <input type="checkbox" id="aceiteTermos" name="aceiteTermos" value="on" <%= v.aceiteTermos === 'on' ? 'checked' : '' %> required>
+      <label for="aceiteTermos">Li o edital integralmente e estou ciente de que <strong>não posso trocar a vaga depois</strong> de enviar esta inscrição.</label>
+    </div>
+    <% if (erros.aceiteTermos) { %><p class="erro-campo"><%= erros.aceiteTermos %></p><% } %>
+  </div>
+
+  <div class="acoes">
+    <button class="btn" type="submit">Enviar inscrição</button>
+    <a class="btn secundario" href="/editais/<%= edital.id %>">Cancelar</a>
+  </div>
+</form>
+<% } %>
+<%- include('partials/footer') %>

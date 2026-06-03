@@ -1,0 +1,44 @@
+<%- include('partials/head') %>
+<% var insc = recurso.inscricao; %>
+<p class="meta"><a href="/admin/editais/<%= insc.edital.id %>/recursos">&larr; Recursos</a></p>
+<h1>Recurso <%= recurso.protocolo %></h1>
+<p><span class="badge <%= recurso.status === 'deferido' ? 'badge-ok' : (recurso.status === 'indeferido' ? 'badge-erro' : 'badge-warn') %>"><%= fmt.ROTULO_STATUS_RECURSO[recurso.status] %></span> · <%= fmt.ROTULO_FASE_RECURSO[recurso.fase] %></p>
+
+<div class="card">
+  <h2>Origem</h2>
+  <dl class="dados">
+    <dt>Candidato</dt><dd><%= insc.candidato.nomeCompleto %> (<%= fmt.formatarCpf(insc.candidato.cpf) %>)</dd>
+    <dt>Inscrição</dt><dd>nº <%= insc.numeroInscricao %> · <%= insc.cargo.nome %> · <a href="/admin/inscricoes/<%= insc.id %>">ver inscrição</a></dd>
+    <dt>Edital</dt><dd><%= insc.edital.numero %></dd>
+    <dt>Recebido em</dt><dd><%= fmt.fmtDataHora(recurso.criadoEm) %></dd>
+  </dl>
+</div>
+
+<div class="card">
+  <h2>Fundamentação do candidato</h2>
+  <p style="white-space:pre-wrap"><%= recurso.texto %></p>
+  <% if (recurso.anexoPath) { %><p><a href="/admin/recursos/<%= recurso.id %>/anexo" target="_blank" rel="noopener">Baixar anexo</a></p><% } %>
+</div>
+
+<div class="card">
+  <h2>Resposta</h2>
+  <% if (recurso.status !== 'aberto') { %>
+    <p><strong>Decisão:</strong> <%= fmt.ROTULO_STATUS_RECURSO[recurso.status] %> (<%= fmt.fmtDataHora(recurso.respondidoEm) %>)</p>
+    <p style="white-space:pre-wrap"><%= recurso.respostaAdmin %></p>
+  <% } else { %>
+    <form action="/admin/recursos/<%= recurso.id %>/responder" method="post" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label for="status">Decisão</label>
+      <select id="status" name="status" required>
+        <option value="deferido">Deferido</option>
+        <option value="indeferido">Indeferido</option>
+      </select>
+      <% if (erros.status) { %><p class="erro-campo"><%= erros.status %></p><% } %>
+      <label for="respostaAdmin">Resposta fundamentada</label>
+      <textarea id="respostaAdmin" name="respostaAdmin" rows="6" required <%= erros.respostaAdmin ? 'aria-invalid="true"' : '' %>></textarea>
+      <% if (erros.respostaAdmin) { %><p class="erro-campo"><%= erros.respostaAdmin %></p><% } %>
+      <div class="acoes"><button class="btn" type="submit">Salvar resposta e notificar</button></div>
+    </form>
+  <% } %>
+</div>
+<%- include('partials/footer') %>

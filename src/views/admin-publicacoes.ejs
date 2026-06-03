@@ -1,0 +1,62 @@
+<%- include('partials/head') %>
+<% var v = valores || {}; %>
+<p class="meta"><a href="/admin/editais/<%= edital.id %>">&larr; <%= edital.numero %></a></p>
+<h1>Publicações</h1>
+<p class="muted"><%= edital.numero %> — <%= edital.titulo %>. Espelho de transparência (não substitui o Diário Oficial).</p>
+
+<div class="card">
+  <h2>Nova publicação</h2>
+  <form action="/admin/editais/<%= edital.id %>/publicacoes" method="post" enctype="multipart/form-data" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="grid cols-2">
+      <div>
+        <label for="tipo">Tipo</label>
+        <select id="tipo" name="tipo" required>
+          <% Object.keys(fmt.ROTULO_TIPO_PUBLICACAO).forEach(function(t){ %>
+            <option value="<%= t %>" <%= v.tipo === t ? 'selected' : '' %>><%= fmt.ROTULO_TIPO_PUBLICACAO[t] %></option>
+          <% }); %>
+        </select>
+        <% if (erros.tipo) { %><p class="erro-campo"><%= erros.tipo %></p><% } %>
+      </div>
+      <div>
+        <label for="titulo">Título</label>
+        <input id="titulo" name="titulo" required value="<%= v.titulo || '' %>">
+        <% if (erros.titulo) { %><p class="erro-campo"><%= erros.titulo %></p><% } %>
+      </div>
+    </div>
+    <label for="arquivo">Arquivo (PDF, CSV, JPG ou PNG — até 8 MB)</label>
+    <input id="arquivo" name="arquivo" type="file" accept=".pdf,.csv,.jpg,.jpeg,.png" required>
+    <% if (erros.arquivo) { %><p class="erro-campo"><%= erros.arquivo %></p><% } %>
+    <p class="dica">Resultado e classificação final também são publicados aqui (tipo "Resultado"/"Classificação").</p>
+    <div class="acoes"><button class="btn" type="submit">Publicar</button></div>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Publicadas</h2>
+  <% if (edital.publicacoes.length === 0) { %>
+    <p class="muted">Nenhuma publicação ainda.</p>
+  <% } else { %>
+    <div class="tabela-wrap">
+      <table>
+        <thead><tr><th>Tipo</th><th>Título</th><th>Publicado em</th><th>Arquivo</th><th></th></tr></thead>
+        <tbody>
+          <% edital.publicacoes.forEach(function(p){ %>
+            <tr>
+              <td><span class="badge badge-info"><%= fmt.ROTULO_TIPO_PUBLICACAO[p.tipo] || p.tipo %></span></td>
+              <td><%= p.titulo %></td>
+              <td><%= fmt.fmtDataHora(p.publicadoEm) %></td>
+              <td><a href="/publicacoes/<%= p.id %>/arquivo" target="_blank" rel="noopener">Abrir</a></td>
+              <td>
+                <form action="/admin/publicacoes/<%= p.id %>/excluir" method="post" onsubmit="return confirm('Excluir esta publicação?');" style="display:inline">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn perigo pequeno">Excluir</button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+<%- include('partials/footer') %>

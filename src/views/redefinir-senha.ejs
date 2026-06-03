@@ -1,0 +1,19 @@
+<%- include('partials/head') %>
+<div class="container-estreito">
+  <div class="card">
+    <h1>Redefinir senha</h1>
+    <form action="/redefinir-senha" method="post" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="token" value="<%= token %>">
+      <label for="novaSenha">Nova senha</label>
+      <input id="novaSenha" name="novaSenha" type="password" required minlength="8">
+      <p class="dica">Mínimo 8 caracteres, com letras e números.</p>
+      <% if (erros.novaSenha) { %><p class="erro-campo"><%= erros.novaSenha %></p><% } %>
+      <label for="confirmaSenha">Confirmar nova senha</label>
+      <input id="confirmaSenha" name="confirmaSenha" type="password" required>
+      <% if (erros.confirmaSenha) { %><p class="erro-campo"><%= erros.confirmaSenha %></p><% } %>
+      <div class="acoes"><button type="submit" class="btn">Redefinir senha</button></div>
+    </form>
+  </div>
+</div>
+<%- include('partials/footer') %>

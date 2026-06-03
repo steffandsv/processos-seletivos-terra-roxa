@@ -1,0 +1,31 @@
+<%- include('partials/head') %>
+<p class="meta"><a href="/editais/<%= edital.id %>">&larr; <%= edital.numero %></a></p>
+<h1>Inscritos<%= homologacao ? ' homologados' : '' %></h1>
+<p class="muted"><%= edital.numero %> — <%= edital.titulo %></p>
+<div class="aviso-box">
+  Por proteção de dados (LGPD), esta lista exibe apenas <strong>nome e número de inscrição</strong>.
+  Não são divulgados CPF nem qualquer informação de saúde/deficiência.
+</div>
+
+<% if (inscritos.length === 0) { %>
+  <div class="card vazio">Nenhum inscrito <%= homologacao ? 'homologado ' : '' %>a exibir.</div>
+<% } else { %>
+  <div class="card">
+    <div class="tabela-wrap">
+      <table>
+        <thead><tr><th>Nº inscrição</th><th>Nome</th><th>Cargo</th></tr></thead>
+        <tbody>
+          <% inscritos.forEach(function(i){ %>
+            <tr>
+              <td><%= i.numeroInscricao %></td>
+              <td><%= i.candidato.nomeCompleto %></td>
+              <td><%= i.cargo.nome %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted" style="margin-top:10px">Total: <%= inscritos.length %></p>
+  </div>
+<% } %>
+<%- include('partials/footer') %>

@@ -1,0 +1,277 @@
+// Sistema de Processos Seletivos — Prefeitura Municipal de Terra Roxa/SP
+// Modelo de dados (ver §4 do plano). Nomes em português, alinhados ao domínio.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum StatusEdital {
+  rascunho
+  publicado
+  encerrado
+  expurgado
+}
+
+enum StatusInscricao {
+  enviada
+  em_analise
+  homologada
+  indeferida
+  cancelada
+}
+
+enum TipoDocumento {
+  doc_foto
+  laudo
+  outro
+}
+
+enum FaseRecurso {
+  inscricao
+  gabarito
+}
+
+enum StatusRecurso {
+  aberto
+  deferido
+  indeferido
+}
+
+enum TipoPublicacao {
+  edital
+  retificacao
+  gabarito_preliminar
+  gabarito_definitivo
+  resultado
+  classificacao
+  convocacao
+  outro
+}
+
+enum AtorTipo {
+  admin
+  candidato
+  sistema
+}
+
+enum StatusNotificacao {
+  enviado
+  falha
+}
+
+// ---------------------------------------------------------------------------
+// Tabelas principais
+// ---------------------------------------------------------------------------
+
+model UsuarioAdmin {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  email     String   @unique
+  senhaHash String   @map("senha_hash")
+  criadoEm  DateTime @default(now()) @map("criado_em")
+
+  @@map("usuario_admin")
+}
+
+model Candidato {
+  id                   Int       @id @default(autoincrement())
+  nomeCompleto         String    @map("nome_completo")
+  cpf                  String    @unique // somente dígitos, dígito verificador validado
+  email                String    @unique
+  telefone             String?
+  endereco             Json? // { logradouro, numero, complemento, bairro, cidade, uf, cep }
+  temDeficiencia       Boolean   @default(false) @map("tem_deficiencia")
+  descricaoDeficiencia String?   @map("descricao_deficiencia")
+  senhaHash            String    @map("senha_hash")
+  emailVerificado      Boolean   @default(false) @map("email_verificado")
+  emailTokenHash       String?   @map("email_token_hash")
+  emailTokenExpiraEm   DateTime? @map("email_token_expira_em")
+  resetTokenHash       String?   @map("reset_token_hash")
+  resetTokenExpiraEm   DateTime? @map("reset_token_expira_em")
+  criadoEm             DateTime  @default(now()) @map("criado_em")
+  atualizadoEm         DateTime  @updatedAt @map("atualizado_em")
+
+  inscricoes Inscricao[]
+
+  @@map("candidato")
+}
+
+model Edital {
+  id                      Int          @id @default(autoincrement())
+  titulo                  String
+  numero                  String       @unique
+  descricao               String?
+  configFases             Json         @map("config_fases") // ver §2
+  dataAberturaInscricao   DateTime?    @map("data_abertura_inscricao")
+  dataEncerramentoInscricao DateTime?  @map("data_encerramento_inscricao")
+  status                  StatusEdital @default(rascunho)
+  criadoEm                DateTime     @default(now()) @map("criado_em")
+
+  cargos      Cargo[]
+  inscricoes  Inscricao[]
+  publicacoes Publicacao[]
+
+  @@map("edital")
+}
+
+model Cargo {
+  id           Int      @id @default(autoincrement())
+  editalId     Int      @map("edital_id")
+  nome         String
+  descricao    String?
+  qtdVagas     Int      @default(1) @map("qtd_vagas")
+  requisitos   String?
+  salario      Decimal? @db.Decimal(10, 2)
+  cargaHoraria String?  @map("carga_horaria")
+
+  edital     Edital      @relation(fields: [editalId], references: [id], onDelete: Cascade)
+  inscricoes Inscricao[]
+
+  @@map("cargo")
+}
+
+model Inscricao {
+  id                  Int             @id @default(autoincrement())
+  candidatoId         Int             @map("candidato_id")
+  editalId            Int             @map("edital_id")
+  cargoId             Int             @map("cargo_id")
+  numeroInscricao     String          @map("numero_inscricao")
+  status              StatusInscricao @default(enviada)
+  motivoIndeferimento String?         @map("motivo_indeferimento")
+  reenvioAteEm        DateTime?       @map("reenvio_ate_em")
+  termoAceiteEm       DateTime?       @map("termo_aceite_em")
+  pdfEspelhoPath      String?         @map("pdf_espelho_path")
+  criadoEm            DateTime        @default(now()) @map("criado_em")
+  atualizadoEm        DateTime        @updatedAt @map("atualizado_em")
+
+  candidato          Candidato           @relation(fields: [candidatoId], references: [id], onDelete: Cascade)
+  edital             Edital              @relation(fields: [editalId], references: [id], onDelete: Cascade)
+  cargo              Cargo               @relation(fields: [cargoId], references: [id], onDelete: Restrict)
+  documentos         Documento[]
+  atendimentoEspecial AtendimentoEspecial?
+  recursos           Recurso[]
+
+  // Um candidato não pode se inscrever no mesmo cargo duas vezes.
+  // A regra "1 vaga por edital" (quando permite_multiplas_vagas=false) é
+  // garantida na camada de aplicação conforme o flag do edital.
+  @@unique([candidatoId, cargoId])
+  // Número de inscrição único por edital.
+  @@unique([editalId, numeroInscricao])
+  @@map("inscricao")
+}
+
+model Documento {
+  id           Int           @id @default(autoincrement())
+  inscricaoId  Int           @map("inscricao_id")
+  tipo         TipoDocumento
+  arquivoPath  String        @map("arquivo_path") // caminho do arquivo CIFRADO em repouso
+  nomeOriginal String?       @map("nome_original")
+  mime         String
+  tamanho      Int // bytes do conteúdo original
+  enviadoEm    DateTime      @default(now()) @map("enviado_em")
+
+  inscricao           Inscricao            @relation(fields: [inscricaoId], references: [id], onDelete: Cascade)
+  atendimentoComoLaudo AtendimentoEspecial? @relation("LaudoDocumento")
+
+  @@map("documento")
+}
+
+model AtendimentoEspecial {
+  id              Int     @id @default(autoincrement())
+  inscricaoId     Int     @unique @map("inscricao_id")
+  tipoNecessidade String  @map("tipo_necessidade")
+  descricao       String?
+  laudoDocumentoId Int?   @unique @map("laudo_documento_id")
+
+  inscricao     Inscricao  @relation(fields: [inscricaoId], references: [id], onDelete: Cascade)
+  laudoDocumento Documento? @relation("LaudoDocumento", fields: [laudoDocumentoId], references: [id], onDelete: SetNull)
+
+  @@map("atendimento_especial")
+}
+
+model Recurso {
+  id           Int           @id @default(autoincrement())
+  inscricaoId  Int           @map("inscricao_id")
+  fase         FaseRecurso
+  protocolo    String        @unique
+  texto        String
+  anexoPath    String?       @map("anexo_path")
+  status       StatusRecurso @default(aberto)
+  respostaAdmin String?      @map("resposta_admin")
+  respondidoEm DateTime?     @map("respondido_em")
+  criadoEm     DateTime      @default(now()) @map("criado_em")
+
+  inscricao Inscricao @relation(fields: [inscricaoId], references: [id], onDelete: Cascade)
+
+  @@map("recurso")
+}
+
+model Publicacao {
+  id          Int            @id @default(autoincrement())
+  editalId    Int            @map("edital_id")
+  tipo        TipoPublicacao
+  titulo      String
+  arquivoPath String         @map("arquivo_path")
+  nomeOriginal String?       @map("nome_original")
+  mime        String?
+  publicadoEm DateTime       @default(now()) @map("publicado_em")
+
+  edital Edital @relation(fields: [editalId], references: [id], onDelete: Cascade)
+
+  @@map("publicacao")
+}
+
+model LogAuditoria {
+  id        Int      @id @default(autoincrement())
+  ator      AtorTipo
+  atorId    String?  @map("ator_id")
+  acao      String
+  entidade  String?
+  entidadeId String? @map("entidade_id")
+  detalhes  Json?
+  ip        String?
+  criadoEm  DateTime @default(now()) @map("criado_em")
+
+  @@index([entidade, entidadeId])
+  @@index([criadoEm])
+  @@map("log_auditoria")
+}
+
+// Configuração do sistema (linha única, id=1). Hoje: SMTP gerenciável pelo
+// admin para evitar SPAM (SSL/TLS, autenticação, From alinhado ao domínio).
+model Configuracao {
+  id              Int      @id @default(1)
+  smtpHost        String?  @map("smtp_host")
+  smtpPort        Int?     @default(587) @map("smtp_port")
+  smtpSecure      Boolean  @default(false) @map("smtp_secure")
+  smtpUser        String?  @map("smtp_user")
+  smtpPassCifrada String?  @map("smtp_pass_cifrada") // cifrada em repouso
+  smtpFrom        String?  @map("smtp_from")
+  atualizadoEm    DateTime @updatedAt @map("atualizado_em")
+
+  @@map("configuracao")
+}
+
+model NotificacaoEmail {
+  id           Int               @id @default(autoincrement())
+  destinatario String
+  assunto      String
+  template     String
+  status       StatusNotificacao
+  tentativas   Int               @default(0)
+  erro         String?
+  inscricaoId  Int?              @map("inscricao_id")
+  criadoEm     DateTime          @default(now()) @map("criado_em")
+
+  @@index([destinatario])
+  @@map("notificacao_email")
+}

@@ -1,0 +1,42 @@
+<%- include('partials/head') %>
+<section class="hero">
+  <img src="/public/img/brasao-180.png" alt="">
+  <div class="hero-txt">
+    <h1>Processos Seletivos</h1>
+    <p><%= orgao.nome %> — <%= orgao.uf %>. Inscreva-se nos editais abertos, acompanhe sua situação e receba todas as comunicações por e-mail. Crie uma conta gratuita e confirme seu e-mail para participar.</p>
+    <% if (!sessao) { %>
+      <div class="acoes" style="margin-top:18px">
+        <a class="btn" href="/cadastro">Criar conta</a>
+        <a class="btn secundario" href="/login">Entrar</a>
+      </div>
+    <% } %>
+  </div>
+</section>
+<h2 style="margin-top:0">Editais abertos</h2>
+
+<% if (editais.length === 0) { %>
+  <div class="card vazio">Nenhum edital publicado no momento.</div>
+<% } else { %>
+  <ul class="lista-editais">
+    <% editais.forEach(function(e){ var aberto = inscricoesAbertas(e); %>
+      <li class="edital-item">
+        <h2><a href="/editais/<%= e.id %>"><%= e.numero %> — <%= e.titulo %></a></h2>
+        <p class="meta">
+          <%= e._count.cargos %> cargo(s) ·
+          Inscrições: <%= fmt.fmtData(e.dataAberturaInscricao) %> a <%= fmt.fmtData(e.dataEncerramentoInscricao) %>
+        </p>
+        <p>
+          <% if (aberto) { %>
+            <span class="badge badge-ok">Inscrições abertas</span>
+          <% } else if (e.status === 'encerrado') { %>
+            <span class="badge badge-neutro">Encerrado</span>
+          <% } else { %>
+            <span class="badge badge-warn">Inscrições fora do prazo</span>
+          <% } %>
+        </p>
+        <div class="acoes"><a class="btn secundario pequeno" href="/editais/<%= e.id %>">Ver detalhes</a></div>
+      </li>
+    <% }); %>
+  </ul>
+<% } %>
+<%- include('partials/footer') %>

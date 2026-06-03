@@ -1,0 +1,73 @@
+<%- include('partials/head') %>
+<p class="meta"><a href="/minhas-inscricoes">&larr; Minhas inscrições</a></p>
+<h1>Inscrição nº <%= insc.numeroInscricao %></h1>
+<p><span class="badge <%= fmt.CLASSE_STATUS_INSCRICAO[insc.status] %>"><%= fmt.ROTULO_STATUS_INSCRICAO[insc.status] %></span></p>
+
+<div class="card">
+  <h2>Resumo</h2>
+  <dl class="dados">
+    <dt>Edital</dt><dd><%= insc.edital.numero %> — <%= insc.edital.titulo %></dd>
+    <dt>Cargo</dt><dd><%= insc.cargo.nome %></dd>
+    <dt>Enviada em</dt><dd><%= fmt.fmtDataHora(insc.criadoEm) %></dd>
+    <dt>Termo de aceite</dt><dd><%= fmt.fmtDataHora(insc.termoAceiteEm) %></dd>
+  </dl>
+  <div class="acoes">
+    <a class="btn secundario" href="/minhas-inscricoes/<%= insc.id %>/espelho" target="_blank" rel="noopener">Baixar espelho (PDF)</a>
+  </div>
+</div>
+
+<% if (insc.status === 'indeferida') { %>
+  <div class="card">
+    <h2>Indeferimento</h2>
+    <div class="flash flash-erro" role="alert"><strong>Motivo:</strong> <%= insc.motivoIndeferimento || '—' %></div>
+    <% if (podeReenviar) { %>
+      <p>Você pode corrigir e reenviar a documentação até <strong><%= fmt.fmtDataHora(insc.reenvioAteEm) %></strong>.</p>
+      <div class="acoes"><a class="btn" href="/minhas-inscricoes/<%= insc.id %>/reenviar">Reenviar documentação</a></div>
+    <% } %>
+    <% if (podeRecursoInscricao) { %>
+      <div class="acoes"><a class="btn secundario" href="/minhas-inscricoes/<%= insc.id %>/recurso/inscricao">Interpor recurso de inscrição</a></div>
+    <% } %>
+  </div>
+<% } %>
+
+<div class="card">
+  <h2>Documentos enviados</h2>
+  <% if (insc.documentos.length === 0) { %>
+    <p class="muted">Nenhum documento.</p>
+  <% } else { %>
+    <ul>
+      <% insc.documentos.forEach(function(d){ %>
+        <li><%= fmt.ROTULO_TIPO_DOCUMENTO[d.tipo] || d.tipo %>: <a href="/documentos/<%= d.id %>/arquivo" target="_blank" rel="noopener"><%= d.nomeOriginal || 'arquivo' %></a> <span class="muted">(<%= fmt.fmtTamanho(d.tamanho) %>, <%= fmt.fmtDataHora(d.enviadoEm) %>)</span></li>
+      <% }); %>
+    </ul>
+  <% } %>
+</div>
+
+<% if (insc.atendimentoEspecial) { %>
+  <div class="card">
+    <h2>Atendimento especial</h2>
+    <dl class="dados">
+      <dt>Necessidade</dt><dd><%= insc.atendimentoEspecial.tipoNecessidade %></dd>
+      <% if (insc.atendimentoEspecial.descricao) { %><dt>Descrição</dt><dd><%= insc.atendimentoEspecial.descricao %></dd><% } %>
+    </dl>
+  </div>
+<% } %>
+
+<% if (flags.fase_recurso_inscricao || flags.fase_recurso_gabarito) { %>
+  <div class="card">
+    <h2>Recursos</h2>
+    <% if (insc.recursos.length === 0) { %><p class="muted">Nenhum recurso interposto.</p><% } %>
+    <% insc.recursos.forEach(function(r){ %>
+      <div style="border:1px solid #e2e8f0;border-radius:6px;padding:12px 14px;margin-bottom:10px">
+        <strong><%= fmt.ROTULO_FASE_RECURSO[r.fase] %></strong> — protocolo <%= r.protocolo %>
+        <span class="badge <%= r.status === 'deferido' ? 'badge-ok' : (r.status === 'indeferido' ? 'badge-erro' : 'badge-warn') %>"><%= fmt.ROTULO_STATUS_RECURSO[r.status] %></span>
+        <p class="muted" style="margin:6px 0 0;white-space:pre-wrap"><%= r.texto %></p>
+        <% if (r.respostaAdmin) { %><p style="margin:8px 0 0"><strong>Resposta:</strong> <%= r.respostaAdmin %> <span class="muted">(<%= fmt.fmtDataHora(r.respondidoEm) %>)</span></p><% } %>
+      </div>
+    <% }); %>
+    <% if (podeRecursoGabarito) { %>
+      <div class="acoes"><a class="btn secundario" href="/minhas-inscricoes/<%= insc.id %>/recurso/gabarito">Interpor recurso de gabarito</a></div>
+    <% } %>
+  </div>
+<% } %>
+<%- include('partials/footer') %>

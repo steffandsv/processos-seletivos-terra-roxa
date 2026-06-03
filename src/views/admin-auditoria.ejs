@@ -1,0 +1,44 @@
+<%- include('partials/head') %>
+<h1>Trilha de auditoria</h1>
+<p class="muted">Toda ação administrativa é registrada (mitigação da conta única — §6). Total: <%= total %>.</p>
+
+<form method="get" action="/admin/auditoria" class="card" style="display:flex;gap:12px;align-items:flex-end">
+  <div>
+    <label for="ator">Ator</label>
+    <select id="ator" name="ator">
+      <option value="">Todos</option>
+      <% ['admin','candidato','sistema'].forEach(function(a){ %><option value="<%= a %>" <%= filtroAtor === a ? 'selected' : '' %>><%= a %></option><% }); %>
+    </select>
+  </div>
+  <div><button class="btn" type="submit">Filtrar</button></div>
+</form>
+
+<% if (logs.length === 0) { %>
+  <div class="card vazio">Nenhum registro.</div>
+<% } else { %>
+  <div class="card">
+    <div class="tabela-wrap">
+      <table>
+        <thead><tr><th>Data/hora</th><th>Ator</th><th>Ação</th><th>Entidade</th><th>IP</th><th>Detalhes</th></tr></thead>
+        <tbody>
+          <% logs.forEach(function(l){ %>
+            <tr>
+              <td><%= fmt.fmtDataHora(l.criadoEm) %></td>
+              <td><%= l.ator %><%= l.atorId ? (' #' + l.atorId) : '' %></td>
+              <td><code><%= l.acao %></code></td>
+              <td><%= l.entidade || '—' %><%= l.entidadeId ? (' #' + l.entidadeId) : '' %></td>
+              <td class="muted"><%= l.ip || '—' %></td>
+              <td class="muted"><%= l.detalhes ? JSON.stringify(l.detalhes) : '' %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <div class="acoes" style="justify-content:space-between">
+      <% if (pagina > 1) { %><a class="btn secundario pequeno" href="/admin/auditoria?pagina=<%= pagina - 1 %><%= filtroAtor ? ('&ator=' + filtroAtor) : '' %>">&larr; Anteriores</a><% } else { %><span></span><% } %>
+      <span class="muted">Página <%= pagina %></span>
+      <% if (pagina * porPagina < total) { %><a class="btn secundario pequeno" href="/admin/auditoria?pagina=<%= pagina + 1 %><%= filtroAtor ? ('&ator=' + filtroAtor) : '' %>">Próximas &rarr;</a><% } else { %><span></span><% } %>
+    </div>
+  </div>
+<% } %>
+<%- include('partials/footer') %>

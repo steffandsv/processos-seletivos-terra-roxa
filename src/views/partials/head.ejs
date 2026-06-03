@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0e0e29">
+  <title><%= titulo %> — <%= orgao.nome %></title>
+  <link rel="icon" type="image/png" href="/public/img/favicon-48.png">
+  <link rel="stylesheet" href="/public/css/styles.css">
+  <script src="/public/js/app.js" defer></script>
+</head>
+<body>
+  <a href="#conteudo" class="skip-link">Pular para o conteúdo</a>
+  <header class="topo">
+    <div class="topo-inner">
+      <a class="marca" href="<%= sessao && sessao.tipo === 'admin' ? '/admin' : '/' %>">
+        <img src="/public/img/brasao-header.png" alt="<%= orgao.nome %> — Processos Seletivos">
+        <% if (sessao && sessao.tipo === 'admin') { %><span class="marca-admin">Administração</span><% } %>
+      </a>
+      <nav class="principal" aria-label="Menu principal">
+        <% if (sessao && sessao.tipo === 'admin') { %>
+          <a href="/admin" <%= currentPath === '/admin' ? 'aria-current="page"' : '' %>>Painel</a>
+          <a href="/admin/editais" <%= currentPath.startsWith('/admin/editais') ? 'aria-current="page"' : '' %>>Editais</a>
+          <a href="/admin/auditoria" <%= currentPath.startsWith('/admin/auditoria') ? 'aria-current="page"' : '' %>>Auditoria</a>
+          <a href="/admin/configuracoes" <%= currentPath.startsWith('/admin/configuracoes') ? 'aria-current="page"' : '' %>>Configurações</a>
+          <span class="nav-user">👤 <%= sessao.nome %></span>
+          <form action="/admin/logout" method="post" style="display:inline;margin:0;">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button type="submit" class="btn pequeno secundario">Sair</button>
+          </form>
+        <% } else if (sessao && sessao.tipo === 'candidato') { %>
+          <a href="/" <%= currentPath === '/' ? 'aria-current="page"' : '' %>>Editais</a>
+          <a href="/minhas-inscricoes" <%= currentPath.startsWith('/minhas-inscricoes') ? 'aria-current="page"' : '' %>>Minhas inscrições</a>
+          <a href="/minha-conta" <%= currentPath.startsWith('/minha-conta') ? 'aria-current="page"' : '' %>>Minha conta</a>
+          <span class="nav-user">👤 <%= sessao.nome %></span>
+          <form action="/logout" method="post" style="display:inline;margin:0;">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button type="submit" class="btn pequeno secundario">Sair</button>
+          </form>
+        <% } else { %>
+          <a href="/" <%= currentPath === '/' ? 'aria-current="page"' : '' %>>Editais</a>
+          <a href="/login" <%= currentPath === '/login' ? 'aria-current="page"' : '' %>>Entrar</a>
+          <a href="/cadastro" <%= currentPath === '/cadastro' ? 'aria-current="page"' : '' %>>Cadastrar</a>
+        <% } %>
+      </nav>
+    </div>
+  </header>
+  <main id="conteudo">
+    <%- include('flashes') %>

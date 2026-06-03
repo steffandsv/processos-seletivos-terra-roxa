@@ -1,0 +1,18 @@
+node_modules/
+.env
+.env.local
+*.log
+npm-debug.log*
+data/uploads/*
+!data/uploads/.gitkeep
+coverage/
+.DS_Store
+dist/
+prisma/*.db
+prisma/*.db-journal
+
+# Windows ADS / metadados
+*:Zone.Identifier
+
+# Configuração local do Claude Code
+.claude/settings.local.json

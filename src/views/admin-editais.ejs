@@ -1,0 +1,29 @@
+<%- include('partials/head') %>
+<div style="display:flex;justify-content:space-between;align-items:center">
+  <h1>Editais</h1>
+  <a class="btn" href="/admin/editais/novo">+ Novo edital</a>
+</div>
+<% if (editais.length === 0) { %>
+  <div class="card vazio">Nenhum edital cadastrado.</div>
+<% } else { %>
+  <div class="card">
+    <div class="tabela-wrap">
+      <table>
+        <thead><tr><th>Número</th><th>Título</th><th>Status</th><th>Cargos</th><th>Inscrições</th><th></th></tr></thead>
+        <tbody>
+          <% editais.forEach(function(e){ %>
+            <tr>
+              <td><%= e.numero %></td>
+              <td><%= e.titulo %></td>
+              <td><span class="badge <%= e.status === 'publicado' ? 'badge-ok' : (e.status === 'rascunho' ? 'badge-warn' : 'badge-neutro') %>"><%= fmt.ROTULO_STATUS_EDITAL[e.status] %></span></td>
+              <td><%= e._count.cargos %></td>
+              <td><%= e._count.inscricoes %></td>
+              <td><a href="/admin/editais/<%= e.id %>">Gerenciar</a></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>
+<%- include('partials/footer') %>

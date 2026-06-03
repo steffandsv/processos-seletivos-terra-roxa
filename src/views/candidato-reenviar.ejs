@@ -1,0 +1,19 @@
+<%- include('partials/head') %>
+<div class="container-estreito">
+  <p class="meta"><a href="/minhas-inscricoes/<%= insc.id %>">&larr; Voltar</a></p>
+  <h1>Reenviar documentação</h1>
+  <div class="card">
+    <p>Inscrição nº <strong><%= insc.numeroInscricao %></strong> — <%= insc.edital.numero %>.</p>
+    <% if (insc.motivoIndeferimento) { %><div class="flash flash-erro"><strong>Motivo do indeferimento:</strong> <%= insc.motivoIndeferimento %></div><% } %>
+    <p class="muted">Prazo para reenvio: até <strong><%= fmt.fmtDataHora(insc.reenvioAteEm) %></strong>.</p>
+    <form action="/minhas-inscricoes/<%= insc.id %>/reenviar" method="post" enctype="multipart/form-data" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label for="documento">Novo documento com foto</label>
+      <input id="documento" name="documento" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required <%= erros.documento ? 'aria-invalid="true"' : '' %>>
+      <p class="dica">PDF, JPG ou PNG, até 8 MB.</p>
+      <% if (erros.documento) { %><p class="erro-campo"><%= erros.documento %></p><% } %>
+      <div class="acoes"><button class="btn" type="submit">Reenviar</button></div>
+    </form>
+  </div>
+</div>
+<%- include('partials/footer') %>

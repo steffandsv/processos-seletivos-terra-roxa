@@ -1,0 +1,51 @@
+# Topologia: [caddy] -> [app-node] -> [postgres (já existente)]  (§3.1)
+# O Postgres NÃO é definido aqui: já existe em seu próprio container. O app se
+# conecta a ele pela rede Docker compartilhada (network externa "db").
+services:
+  app:
+    build: .
+    image: processos-seletivos:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      UPLOAD_DIR: /data/uploads
+      HOST: 0.0.0.0
+      PORT: "3000"
+    volumes:
+      - uploads:/data/uploads
+    networks:
+      - web
+      - db
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - web
+    depends_on:
+      - app
+
+volumes:
+  uploads:
+  caddy_data:
+  caddy_config:
+
+networks:
+  web:
+  # Rede onde o container do Postgres já está conectado.
+  # Ajuste o nome via variável POSTGRES_NETWORK (ex.: "mabus-postgres_default").
+  db:
+    external: true
+    name: ${POSTGRES_NETWORK:-mabus_default}

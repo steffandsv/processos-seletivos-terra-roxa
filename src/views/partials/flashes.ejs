@@ -1,0 +1,5 @@
+<% (flashes || []).forEach(function(f){
+  var cls = { sucesso: 'flash-sucesso', erro: 'flash-erro', aviso: 'flash-aviso', info: 'flash-info' }[f.tipo] || 'flash-info';
+%>
+  <div class="flash <%= cls %>" role="alert"><%= f.texto %></div>
+<% }); %>

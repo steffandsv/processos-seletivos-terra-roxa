@@ -1,0 +1,105 @@
+<%- include('partials/head') %>
+<p class="meta"><a href="/admin/editais">&larr; Editais</a></p>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+  <div>
+    <h1 style="margin-bottom:4px"><%= edital.numero %> — <%= edital.titulo %></h1>
+    <p><span class="badge <%= edital.status === 'publicado' ? 'badge-ok' : (edital.status === 'rascunho' ? 'badge-warn' : 'badge-neutro') %>"><%= fmt.ROTULO_STATUS_EDITAL[edital.status] %></span></p>
+  </div>
+  <div class="acoes" style="margin:0">
+    <a class="btn secundario pequeno" href="/admin/editais/<%= edital.id %>/editar">Editar</a>
+    <% if (edital.status === 'rascunho') { %>
+      <form action="/admin/editais/<%= edital.id %>/publicar" method="post" onsubmit="return confirm('Publicar este edital? Ele ficará visível na vitrine pública.');" style="display:inline">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn ok pequeno">Publicar</button>
+      </form>
+    <% } else if (edital.status === 'publicado') { %>
+      <form action="/admin/editais/<%= edital.id %>/encerrar" method="post" onsubmit="return confirm('Encerrar o edital? Não receberá novas inscrições.');" style="display:inline">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn secundario pequeno">Encerrar</button>
+      </form>
+    <% } else if (edital.status === 'encerrado') { %>
+      <form action="/admin/editais/<%= edital.id %>/expurgar" method="post" onsubmit="return confirm('EXPURGAR documentos das inscrições NÃO homologadas? Esta ação é irreversível (LGPD).');" style="display:inline">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn perigo pequeno">Encerrar e expurgar (LGPD)</button>
+      </form>
+    <% } %>
+  </div>
+</div>
+
+<div class="grid cols-2">
+  <div class="card">
+    <h2>Atalhos</h2>
+    <p>
+      <a class="btn secundario pequeno" href="/admin/editais/<%= edital.id %>/inscricoes">Fila de inscrições (<%= stats.total %>)</a>
+      <a class="btn secundario pequeno" href="/admin/editais/<%= edital.id %>/publicacoes">Publicações (<%= edital._count.publicacoes %>)</a>
+      <a class="btn secundario pequeno" href="/admin/editais/<%= edital.id %>/recursos">Recursos<% if (recursosAbertos) { %> (<%= recursosAbertos %> abertos)<% } %></a>
+      <a class="btn secundario pequeno" href="/admin/editais/<%= edital.id %>/relatorio">Relatório</a>
+      <a class="btn secundario pequeno" href="/editais/<%= edital.id %>/inscritos" target="_blank">Lista pública</a>
+    </p>
+  </div>
+  <div class="card">
+    <h2>Situação das inscrições</h2>
+    <dl class="dados">
+      <dt>Total</dt><dd><%= stats.total %></dd>
+      <dt>Em análise</dt><dd><%= (stats.em_analise || 0) + (stats.enviada || 0) %></dd>
+      <dt>Homologadas</dt><dd><%= stats.homologada || 0 %></dd>
+      <dt>Indeferidas</dt><dd><%= stats.indeferida || 0 %></dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Configuração de fases ativas</h2>
+  <ul>
+    <% Object.keys(rotulos).forEach(function(flag){ if (config[flag]) { %><li><%= rotulos[flag] %></li><% } }); %>
+  </ul>
+  <p class="muted">Janela de reenvio: <%= config.janela_reenvio_documento_dias > 0 ? (config.janela_reenvio_documento_dias + ' dia(s)') : 'desativada' %>.</p>
+</div>
+
+<div class="card">
+  <h2>Cargos / vagas</h2>
+  <% if (edital.cargos.length === 0) { %>
+    <p class="muted">Nenhum cargo. Adicione ao menos um antes de publicar.</p>
+  <% } else { %>
+    <div class="tabela-wrap">
+      <table>
+        <thead><tr><th>Cargo</th><th>Vagas</th><th>Salário</th><th>Carga horária</th><th>Inscrições</th><th>Requisitos</th><th></th></tr></thead>
+        <tbody>
+          <% edital.cargos.forEach(function(c){ %>
+            <tr>
+              <td><strong><%= c.nome %></strong><% if (c.descricao) { %><br><span class="muted"><%= c.descricao %></span><% } %></td>
+              <td><%= c.qtdVagas %></td>
+              <td><%= fmt.fmtMoeda(c.salario) || '—' %></td>
+              <td><%= c.cargaHoraria || '—' %></td>
+              <td><%= c._count.inscricoes %></td>
+              <td><%= c.requisitos || '—' %></td>
+              <td>
+                <% if (c._count.inscricoes === 0) { %>
+                  <form action="/admin/cargos/<%= c.id %>/excluir" method="post" onsubmit="return confirm('Excluir este cargo?');" style="display:inline">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn perigo pequeno">Excluir</button>
+                  </form>
+                <% } else { %><span class="muted">—</span><% } %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+
+  <h3>Adicionar cargo</h3>
+  <form action="/admin/editais/<%= edital.id %>/cargos" method="post" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="grid cols-2">
+      <div><label for="nome">Nome do cargo</label><input id="nome" name="nome" required></div>
+      <div><label for="qtdVagas">Quantidade de vagas</label><input id="qtdVagas" name="qtdVagas" type="number" min="0" value="1"></div>
+    </div>
+    <div class="grid cols-2">
+      <div><label for="salario">Salário <span class="opcional">(opcional)</span></label><input id="salario" name="salario" inputmode="decimal" placeholder="Ex.: 1.412,00"></div>
+      <div><label for="cargaHoraria">Carga horária <span class="opcional">(opcional)</span></label><input id="cargaHoraria" name="cargaHoraria" placeholder="Ex.: 40h semanais"></div>
+    </div>
+    <label for="descricao">Descrição <span class="opcional">(opcional)</span></label>
+    <input id="descricao" name="descricao">
+    <label for="requisitos">Requisitos <span class="opcional">(opcional)</span></label>
+    <input id="requisitos" name="requisitos">
+    <div class="acoes"><button class="btn pequeno" type="submit">Adicionar cargo</button></div>
+  </form>
+</div>
+<%- include('partials/footer') %>

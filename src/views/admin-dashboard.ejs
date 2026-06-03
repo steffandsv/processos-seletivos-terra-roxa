@@ -1,0 +1,38 @@
+<%- include('partials/head') %>
+<h1>Painel administrativo</h1>
+<div class="grid cols-2">
+  <div class="card"><h3>Editais</h3><p style="font-size:2rem;margin:0"><%= stats.totalEditais %></p><p class="muted"><%= stats.porStatus.publicado || 0 %> publicado(s) · <%= stats.porStatus.rascunho || 0 %> rascunho(s)</p></div>
+  <div class="card"><h3>Candidatos</h3><p style="font-size:2rem;margin:0"><%= stats.totalCandidatos %></p><p class="muted"><%= stats.totalInscricoes %> inscrição(ões) no total</p></div>
+</div>
+<% if (stats.recursosAbertos > 0) { %>
+  <div class="flash flash-aviso"><%= stats.recursosAbertos %> recurso(s) aguardando resposta.</div>
+<% } %>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <h2 style="margin:0">Editais</h2>
+    <a class="btn pequeno" href="/admin/editais/novo">+ Novo edital</a>
+  </div>
+  <% if (editais.length === 0) { %>
+    <p class="muted" style="margin-top:14px">Nenhum edital ainda. <a href="/admin/editais/novo">Crie o primeiro</a>.</p>
+  <% } else { %>
+    <div class="tabela-wrap" style="margin-top:14px">
+      <table>
+        <thead><tr><th>Número</th><th>Título</th><th>Status</th><th>Cargos</th><th>Inscrições</th><th></th></tr></thead>
+        <tbody>
+          <% editais.forEach(function(e){ %>
+            <tr>
+              <td><%= e.numero %></td>
+              <td><%= e.titulo %></td>
+              <td><span class="badge <%= e.status === 'publicado' ? 'badge-ok' : (e.status === 'rascunho' ? 'badge-warn' : 'badge-neutro') %>"><%= fmt.ROTULO_STATUS_EDITAL[e.status] %></span></td>
+              <td><%= e._count.cargos %></td>
+              <td><%= e._count.inscricoes %></td>
+              <td><a href="/admin/editais/<%= e.id %>">Gerenciar</a></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+<%- include('partials/footer') %>

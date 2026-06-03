@@ -1,0 +1,10 @@
+node_modules
+.git
+.env
+.env.local
+data/uploads
+*.log
+coverage
+tests
+.github
+plano-sistema-processos-seletivos-terra-roxa.md

@@ -1,0 +1,11 @@
+<%- include('partials/head') %>
+<div class="container-estreito">
+  <div class="card">
+    <h1><%= titulo %></h1>
+    <p><%= mensagem %></p>
+    <div class="acoes">
+      <a class="btn" href="<%= typeof voltarUrl !== 'undefined' && voltarUrl ? voltarUrl : '/' %>">Voltar</a>
+    </div>
+  </div>
+</div>
+<%- include('partials/footer') %>

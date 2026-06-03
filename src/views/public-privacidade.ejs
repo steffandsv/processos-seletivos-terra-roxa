@@ -1,0 +1,36 @@
+<%- include('partials/head') %>
+<div class="card">
+  <h1>Aviso de Privacidade</h1>
+  <p class="muted">Versão 1.0 — Sistema de Processos Seletivos da <%= orgao.nome %> (<%= orgao.uf %>).</p>
+
+  <h2>1. Controlador e Encarregado (DPO)</h2>
+  <p>O controlador dos dados é a <%= orgao.nome %>.<% if (orgao.dpoContato) { %> O Encarregado pelo Tratamento de Dados Pessoais (DPO) pode ser contatado em <strong><%= orgao.dpoContato %></strong>.<% } %></p>
+
+  <h2>2. Bases legais</h2>
+  <p>O tratamento de dados realizado por este sistema não se ancora em consentimento, mas no
+  <strong>cumprimento de obrigação legal ou regulatória</strong> e na <strong>execução de políticas públicas</strong>
+  (Lei nº 13.709/2018 — LGPD, art. 7º, II e III; e art. 23), inerentes à realização de processos seletivos pela Administração Pública.</p>
+
+  <h2>3. Dados tratados e finalidade</h2>
+  <ul>
+    <li>Dados de identificação e contato (nome, CPF, e-mail, telefone, endereço): identificar o candidato e viabilizar a inscrição e a comunicação oficial.</li>
+    <li>Documento com foto: comprovar identidade para homologação da inscrição.</li>
+    <li>Informações sobre deficiência (dado pessoal sensível, art. 5º, II): coletadas de forma <strong>opcional</strong> e com finalidade <strong>restrita</strong> ao atendimento especial durante a prova. Não são utilizadas para nenhuma outra finalidade e <strong>nunca são divulgadas em listas públicas</strong>.</li>
+  </ul>
+
+  <h2>4. Minimização</h2>
+  <p>Nenhum documento é exigido no cadastro; documentos só são solicitados na inscrição e somente o necessário.</p>
+
+  <h2>5. Listas públicas</h2>
+  <p>As listas públicas exibem exclusivamente <strong>nome e número de inscrição</strong>. Não publicamos CPF nem sinalizamos quem é pessoa com deficiência ou cotista.</p>
+
+  <h2>6. Segurança</h2>
+  <p>Os documentos enviados são armazenados <strong>criptografados</strong>; o tráfego ocorre sob <strong>HTTPS</strong>. Toda ação administrativa é registrada em trilha de auditoria.</p>
+
+  <h2>7. Retenção e descarte</h2>
+  <p>Os dados e documentos são mantidos durante a validade do certame. Encerrado o edital, os documentos dos candidatos não classificados são <strong>expurgados</strong>, com registro da operação.</p>
+
+  <h2>8. Direitos do titular</h2>
+  <p>O candidato pode, em sua conta, <strong>exportar seus dados</strong> e <strong>solicitar a exclusão</strong> daqueles que não estejam sujeitos à guarda obrigatória do certame.</p>
+</div>
+<%- include('partials/footer') %>

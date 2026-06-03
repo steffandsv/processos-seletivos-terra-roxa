@@ -1,0 +1,56 @@
+<%- include('partials/head') %>
+<%
+  var v = valores || {};
+  var acao = edital ? ('/admin/editais/' + edital.id) : '/admin/editais';
+  function dtLocal(d){ try { return d ? new Date(d).toISOString().slice(0,16) : ''; } catch(e){ return ''; } }
+  function val(campo, base){ return v[campo] !== undefined ? v[campo] : (base || ''); }
+%>
+<p class="meta"><a href="<%= edital ? ('/admin/editais/' + edital.id) : '/admin/editais' %>">&larr; Voltar</a></p>
+<h1><%= edital ? ('Editar edital ' + edital.numero) : 'Novo edital' %></h1>
+
+<form action="<%= acao %>" method="post" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="card">
+    <h2>Dados do edital</h2>
+    <label for="numero">Número / identificador</label>
+    <input id="numero" name="numero" required value="<%= val('numero', edital && edital.numero) %>" <%= erros.numero ? 'aria-invalid="true"' : '' %>>
+    <% if (erros.numero) { %><p class="erro-campo"><%= erros.numero %></p><% } %>
+
+    <label for="titulo">Título</label>
+    <input id="titulo" name="titulo" required value="<%= val('titulo', edital && edital.titulo) %>" <%= erros.titulo ? 'aria-invalid="true"' : '' %>>
+    <% if (erros.titulo) { %><p class="erro-campo"><%= erros.titulo %></p><% } %>
+
+    <label for="descricao">Descrição <span class="opcional">(opcional)</span></label>
+    <textarea id="descricao" name="descricao" rows="5"><%= val('descricao', edital && edital.descricao) %></textarea>
+
+    <div class="grid cols-2">
+      <div>
+        <label for="dataAberturaInscricao">Abertura das inscrições</label>
+        <input id="dataAberturaInscricao" name="dataAberturaInscricao" type="datetime-local" value="<%= v.dataAberturaInscricao !== undefined ? v.dataAberturaInscricao : dtLocal(edital && edital.dataAberturaInscricao) %>">
+      </div>
+      <div>
+        <label for="dataEncerramentoInscricao">Encerramento das inscrições</label>
+        <input id="dataEncerramentoInscricao" name="dataEncerramentoInscricao" type="datetime-local" value="<%= v.dataEncerramentoInscricao !== undefined ? v.dataEncerramentoInscricao : dtLocal(edital && edital.dataEncerramentoInscricao) %>">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Configuração de fases</h2>
+    <p class="muted">Ligue apenas as etapas necessárias para este edital. Etapas desligadas simplesmente não existem para o candidato.</p>
+    <% Object.keys(rotulos).forEach(function(flag){ %>
+      <div class="check-linha">
+        <input type="checkbox" id="<%= flag %>" name="<%= flag %>" value="on" <%= config[flag] ? 'checked' : '' %>>
+        <label for="<%= flag %>"><%= rotulos[flag] %></label>
+      </div>
+    <% }); %>
+    <label for="janela_reenvio_documento_dias">Janela de reenvio de documento (dias) <span class="opcional">— 0 desativa o reenvio</span></label>
+    <input id="janela_reenvio_documento_dias" name="janela_reenvio_documento_dias" type="number" min="0" max="60" style="max-width:120px" value="<%= config.janela_reenvio_documento_dias %>">
+  </div>
+
+  <div class="acoes">
+    <button class="btn" type="submit"><%= edital ? 'Salvar alterações' : 'Criar edital' %></button>
+    <a class="btn secundario" href="<%= edital ? ('/admin/editais/' + edital.id) : '/admin/editais' %>">Cancelar</a>
+  </div>
+</form>
+<%- include('partials/footer') %>

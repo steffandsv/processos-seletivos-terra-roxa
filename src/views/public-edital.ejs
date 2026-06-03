@@ -1,0 +1,71 @@
+<%- include('partials/head') %>
+<p class="meta"><a href="/">&larr; Todos os editais</a></p>
+<h1><%= edital.numero %> — <%= edital.titulo %></h1>
+<p>
+  <% if (aberto) { %><span class="badge badge-ok">Inscrições abertas</span>
+  <% } else if (edital.status === 'encerrado') { %><span class="badge badge-neutro">Encerrado</span>
+  <% } else { %><span class="badge badge-warn">Inscrições fora do prazo</span><% } %>
+</p>
+
+<div class="card">
+  <h2>Informações</h2>
+  <dl class="dados">
+    <dt>Período de inscrição</dt><dd><%= fmt.fmtData(edital.dataAberturaInscricao) %> a <%= fmt.fmtData(edital.dataEncerramentoInscricao) %></dd>
+  </dl>
+  <% if (edital.descricao) { %><p style="white-space:pre-wrap"><%= edital.descricao %></p><% } %>
+  <div class="acoes">
+    <% if (aberto) { %>
+      <a class="btn" href="/editais/<%= edital.id %>/inscrever">Inscrever-se</a>
+    <% } %>
+    <a class="btn secundario" href="/editais/<%= edital.id %>/inscritos">Lista de inscritos</a>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Cargos / vagas</h2>
+  <% if (edital.cargos.length === 0) { %>
+    <p class="muted">Nenhum cargo cadastrado.</p>
+  <% } else { %>
+    <div class="tabela-wrap">
+      <table>
+        <thead><tr><th>Cargo</th><th>Vagas</th><th>Salário</th><th>Carga horária</th><th>Requisitos</th></tr></thead>
+        <tbody>
+          <% edital.cargos.forEach(function(c){ %>
+            <tr>
+              <td><strong><%= c.nome %></strong><% if (c.descricao) { %><br><span class="muted"><%= c.descricao %></span><% } %></td>
+              <td><%= c.qtdVagas %></td>
+              <td><%= fmt.fmtMoeda(c.salario) || '—' %></td>
+              <td><%= c.cargaHoraria || '—' %></td>
+              <td><%= c.requisitos || '—' %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<div class="card">
+  <h2>Publicações</h2>
+  <p class="muted">Espelho de transparência. Não substitui o Diário Oficial.</p>
+  <% if (edital.publicacoes.length === 0) { %>
+    <p class="muted">Nenhuma publicação ainda.</p>
+  <% } else { %>
+    <div class="tabela-wrap">
+      <table>
+        <thead><tr><th>Tipo</th><th>Título</th><th>Publicado em</th><th>Arquivo</th></tr></thead>
+        <tbody>
+          <% edital.publicacoes.forEach(function(p){ %>
+            <tr>
+              <td><span class="badge badge-info"><%= fmt.ROTULO_TIPO_PUBLICACAO[p.tipo] || p.tipo %></span></td>
+              <td><%= p.titulo %></td>
+              <td><%= fmt.fmtDataHora(p.publicadoEm) %></td>
+              <td><a href="/publicacoes/<%= p.id %>/arquivo" target="_blank" rel="noopener">Abrir</a></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+<%- include('partials/footer') %>

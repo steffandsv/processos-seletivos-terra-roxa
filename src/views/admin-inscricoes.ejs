@@ -1,0 +1,49 @@
+<%- include('partials/head') %>
+<p class="meta"><a href="/admin/editais/<%= edital.id %>">&larr; <%= edital.numero %></a></p>
+<h1>Fila de inscrições</h1>
+<p class="muted"><%= edital.numero %> — <%= edital.titulo %></p>
+
+<form method="get" action="/admin/editais/<%= edital.id %>/inscricoes" class="card" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+  <div style="flex:1;min-width:160px">
+    <label for="status">Situação</label>
+    <select id="status" name="status">
+      <option value="">Todas</option>
+      <% ['enviada','em_analise','homologada','indeferida','cancelada'].forEach(function(s){ %>
+        <option value="<%= s %>" <%= filtroStatus === s ? 'selected' : '' %>><%= fmt.ROTULO_STATUS_INSCRICAO[s] %></option>
+      <% }); %>
+    </select>
+  </div>
+  <div style="flex:1;min-width:160px">
+    <label for="cargo">Cargo</label>
+    <select id="cargo" name="cargo">
+      <option value="">Todos</option>
+      <% edital.cargos.forEach(function(c){ %><option value="<%= c.id %>" <%= String(filtroCargo) === String(c.id) ? 'selected' : '' %>><%= c.nome %></option><% }); %>
+    </select>
+  </div>
+  <div><button class="btn" type="submit">Filtrar</button></div>
+</form>
+
+<% if (inscricoes.length === 0) { %>
+  <div class="card vazio">Nenhuma inscrição com os filtros atuais.</div>
+<% } else { %>
+  <div class="card">
+    <div class="tabela-wrap">
+      <table>
+        <thead><tr><th>Nº</th><th>Candidato</th><th>Cargo</th><th>Docs</th><th>Situação</th><th></th></tr></thead>
+        <tbody>
+          <% inscricoes.forEach(function(i){ %>
+            <tr>
+              <td><%= i.numeroInscricao %></td>
+              <td><%= i.candidato.nomeCompleto %><br><span class="muted"><%= fmt.formatarCpf(i.candidato.cpf) %></span></td>
+              <td><%= i.cargo.nome %></td>
+              <td><%= i._count.documentos %></td>
+              <td><span class="badge <%= fmt.CLASSE_STATUS_INSCRICAO[i.status] %>"><%= fmt.ROTULO_STATUS_INSCRICAO[i.status] %></span></td>
+              <td><a href="/admin/inscricoes/<%= i.id %>">Analisar</a></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>
+<%- include('partials/footer') %>

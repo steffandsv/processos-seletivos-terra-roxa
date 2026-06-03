@@ -1,0 +1,27 @@
+<%- include('partials/head') %>
+<p class="meta"><a href="/admin/editais/<%= edital.id %>">&larr; <%= edital.numero %></a></p>
+<h1>Relatório</h1>
+<p class="muted"><%= edital.numero %> — <%= edital.titulo %></p>
+
+<div class="card">
+  <h2>Inscrições por cargo</h2>
+  <div class="tabela-wrap">
+    <table>
+      <thead><tr><th>Cargo</th><th>Vagas</th><th>Total</th><th>Em análise</th><th>Homologadas</th><th>Indeferidas</th></tr></thead>
+      <tbody>
+        <% linhas.forEach(function(l){ %>
+          <tr>
+            <td><%= l.cargo.nome %></td>
+            <td><%= l.cargo.qtdVagas %></td>
+            <td><strong><%= l.total %></strong></td>
+            <td><%= (l.em_analise || 0) + (l.enviada || 0) %></td>
+            <td><%= l.homologada || 0 %></td>
+            <td><%= l.indeferida || 0 %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+      <tfoot><tr><th>Total geral</th><th></th><th><%= totalGeral %></th><th></th><th></th><th></th></tr></tfoot>
+    </table>
+  </div>
+</div>
+<%- include('partials/footer') %>

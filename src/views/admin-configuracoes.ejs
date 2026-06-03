@@ -1,0 +1,73 @@
+<%- include('partials/head') %>
+<%
+  var v = valores || {};
+  var c = cfg || {};
+  function val(campo, base){ return v[campo] !== undefined ? v[campo] : (base != null ? base : ''); }
+  var secureChecked = (Object.keys(v).length ? v.smtpSecure === 'on' : !!c.smtpSecure);
+%>
+<h1>Configurações</h1>
+
+<div class="card">
+  <h2>Envio de e-mail (SMTP)</h2>
+  <% if (usandoEnv) { %>
+    <div class="flash flash-info">Atualmente o sistema usa a configuração de SMTP definida por variável de ambiente. Preencher abaixo passa a usar esta configuração.</div>
+  <% } else if (semSmtp) { %>
+    <div class="flash flash-aviso">Nenhum SMTP configurado: o sistema está em <strong>modo de desenvolvimento</strong> e os e-mails <strong>não são enviados</strong> (apenas registrados). Configure abaixo para enviar de verdade.</div>
+  <% } %>
+
+  <form action="/admin/configuracoes" method="post" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="grid cols-2">
+      <div>
+        <label for="smtpHost">Servidor (host)</label>
+        <input id="smtpHost" name="smtpHost" value="<%= val('smtpHost', c.smtpHost) %>" placeholder="smtp.seu-provedor.com.br">
+        <% if (erros.smtpHost) { %><p class="erro-campo"><%= erros.smtpHost %></p><% } %>
+      </div>
+      <div>
+        <label for="smtpPort">Porta</label>
+        <input id="smtpPort" name="smtpPort" type="number" min="1" max="65535" value="<%= val('smtpPort', c.smtpPort || 587) %>">
+        <p class="dica">465 = SSL/TLS direto · 587 = STARTTLS</p>
+        <% if (erros.smtpPort) { %><p class="erro-campo"><%= erros.smtpPort %></p><% } %>
+      </div>
+    </div>
+
+    <div class="check-linha">
+      <input type="checkbox" id="smtpSecure" name="smtpSecure" value="on" <%= secureChecked ? 'checked' : '' %>>
+      <label for="smtpSecure">Conexão segura SSL/TLS desde o início (marque para porta 465; desmarque para 587/STARTTLS)</label>
+    </div>
+
+    <div class="grid cols-2">
+      <div>
+        <label for="smtpUser">Usuário</label>
+        <input id="smtpUser" name="smtpUser" autocomplete="off" value="<%= val('smtpUser', c.smtpUser) %>">
+      </div>
+      <div>
+        <label for="smtpPass">Senha <% if (temSenha) { %><span class="opcional">(salva — deixe em branco para manter)</span><% } %></label>
+        <input id="smtpPass" name="smtpPass" type="password" autocomplete="new-password" placeholder="<%= temSenha ? '••••••••' : '' %>">
+        <% if (temSenha) { %>
+          <div class="check-linha"><input type="checkbox" id="limparSenha" name="limparSenha" value="on"><label for="limparSenha">Remover a senha salva</label></div>
+        <% } %>
+      </div>
+    </div>
+
+    <label for="smtpFrom">Remetente (From)</label>
+    <input id="smtpFrom" name="smtpFrom" value="<%= val('smtpFrom', c.smtpFrom) %>" placeholder='Processos Seletivos &lt;nao-responda@terraroxa.sp.gov.br&gt;'>
+    <p class="dica">Para não cair em SPAM, use um remetente do <strong>mesmo domínio</strong> do servidor SMTP e configure <strong>SPF e DKIM</strong> no DNS do domínio (feito pela equipe de TI, fora deste sistema).</p>
+
+    <div class="acoes"><button class="btn" type="submit">Salvar configuração</button></div>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Enviar e-mail de teste</h2>
+  <p class="muted">Salve a configuração antes de testar. Verifique também a caixa de spam.</p>
+  <form action="/admin/configuracoes/teste" method="post" novalidate style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div style="flex:1;min-width:240px">
+      <label for="destino">Enviar para</label>
+      <input id="destino" name="destino" type="email" required value="<%= adminEmail %>">
+    </div>
+    <div><button class="btn secundario" type="submit">Enviar teste</button></div>
+  </form>
+</div>
+<%- include('partials/footer') %>

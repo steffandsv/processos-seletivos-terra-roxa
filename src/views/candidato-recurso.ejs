@@ -1,0 +1,20 @@
+<%- include('partials/head') %>
+<% var v = valores || {}; %>
+<div class="container-estreito">
+  <p class="meta"><a href="/minhas-inscricoes/<%= insc.id %>">&larr; Voltar</a></p>
+  <h1><%= fmt.ROTULO_FASE_RECURSO[fase] %></h1>
+  <div class="card">
+    <p>Inscrição nº <strong><%= insc.numeroInscricao %></strong> — <%= insc.edital.numero %>.</p>
+    <form action="/minhas-inscricoes/<%= insc.id %>/recurso/<%= fase %>" method="post" enctype="multipart/form-data" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label for="texto">Fundamentação do recurso</label>
+      <textarea id="texto" name="texto" rows="8" required <%= erros.texto ? 'aria-invalid="true"' : '' %>><%= v.texto || '' %></textarea>
+      <% if (erros.texto) { %><p class="erro-campo"><%= erros.texto %></p><% } %>
+      <label for="anexo">Anexo <span class="opcional">(opcional, PDF/JPG/PNG)</span></label>
+      <input id="anexo" name="anexo" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" <%= erros.anexo ? 'aria-invalid="true"' : '' %>>
+      <% if (erros.anexo) { %><p class="erro-campo"><%= erros.anexo %></p><% } %>
+      <div class="acoes"><button class="btn" type="submit">Protocolar recurso</button></div>
+    </form>
+  </div>
+</div>
+<%- include('partials/footer') %>

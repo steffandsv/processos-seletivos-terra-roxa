@@ -1,0 +1,30 @@
+<%- include('partials/head') %>
+<p class="meta"><a href="/admin/editais/<%= edital.id %>">&larr; <%= edital.numero %></a></p>
+<h1>Recursos</h1>
+<p class="muted"><%= edital.numero %> — <%= edital.titulo %></p>
+
+<% if (recursos.length === 0) { %>
+  <div class="card vazio">Nenhum recurso interposto.</div>
+<% } else { %>
+  <div class="card">
+    <div class="tabela-wrap">
+      <table>
+        <thead><tr><th>Protocolo</th><th>Fase</th><th>Candidato</th><th>Cargo</th><th>Situação</th><th>Recebido</th><th></th></tr></thead>
+        <tbody>
+          <% recursos.forEach(function(r){ %>
+            <tr>
+              <td><%= r.protocolo %></td>
+              <td><%= fmt.ROTULO_FASE_RECURSO[r.fase] %></td>
+              <td><%= r.inscricao.candidato.nomeCompleto %><br><span class="muted">Insc. <%= r.inscricao.numeroInscricao %></span></td>
+              <td><%= r.inscricao.cargo.nome %></td>
+              <td><span class="badge <%= r.status === 'deferido' ? 'badge-ok' : (r.status === 'indeferido' ? 'badge-erro' : 'badge-warn') %>"><%= fmt.ROTULO_STATUS_RECURSO[r.status] %></span></td>
+              <td><%= fmt.fmtDataHora(r.criadoEm) %></td>
+              <td><a href="/admin/recursos/<%= r.id %>"><%= r.status === 'aberto' ? 'Responder' : 'Ver' %></a></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>
+<%- include('partials/footer') %>

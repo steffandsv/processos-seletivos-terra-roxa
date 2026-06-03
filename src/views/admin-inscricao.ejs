@@ -1,0 +1,79 @@
+<%- include('partials/head') %>
+<p class="meta"><a href="/admin/editais/<%= insc.edital.id %>/inscricoes">&larr; Fila de inscrições</a></p>
+<h1>Inscrição nº <%= insc.numeroInscricao %></h1>
+<p><span class="badge <%= fmt.CLASSE_STATUS_INSCRICAO[insc.status] %>"><%= fmt.ROTULO_STATUS_INSCRICAO[insc.status] %></span> · <%= insc.edital.numero %> · <%= insc.cargo.nome %></p>
+
+<div class="grid cols-2">
+  <div class="card">
+    <h2>Candidato</h2>
+    <dl class="dados">
+      <dt>Nome</dt><dd><%= insc.candidato.nomeCompleto %></dd>
+      <dt>CPF</dt><dd><%= fmt.formatarCpf(insc.candidato.cpf) %></dd>
+      <dt>E-mail</dt><dd><%= insc.candidato.email %> <%= insc.candidato.emailVerificado ? '✅' : '⏳ não verificado' %></dd>
+      <dt>Telefone</dt><dd><%= insc.candidato.telefone || '—' %></dd>
+      <dt>Enviada em</dt><dd><%= fmt.fmtDataHora(insc.criadoEm) %></dd>
+      <dt>Termo aceite</dt><dd><%= fmt.fmtDataHora(insc.termoAceiteEm) %></dd>
+    </dl>
+  </div>
+  <div class="card">
+    <h2>Documentos</h2>
+    <% if (insc.documentos.length === 0) { %>
+      <p class="muted">Nenhum documento anexado.</p>
+    <% } else { %>
+      <ul>
+        <% insc.documentos.forEach(function(d){ %>
+          <li><%= fmt.ROTULO_TIPO_DOCUMENTO[d.tipo] || d.tipo %>: <a href="/admin/documentos/<%= d.id %>/arquivo" target="_blank" rel="noopener"><%= d.nomeOriginal || 'arquivo' %></a> <span class="muted">(<%= fmt.fmtTamanho(d.tamanho) %>)</span></li>
+        <% }); %>
+      </ul>
+    <% } %>
+    <% if (insc.atendimentoEspecial) { %>
+      <h3>Atendimento especial</h3>
+      <dl class="dados">
+        <dt>Necessidade</dt><dd><%= insc.atendimentoEspecial.tipoNecessidade %></dd>
+        <% if (insc.atendimentoEspecial.descricao) { %><dt>Detalhes</dt><dd><%= insc.atendimentoEspecial.descricao %></dd><% } %>
+        <% if (insc.atendimentoEspecial.laudoDocumento) { %><dt>Laudo</dt><dd><a href="/admin/documentos/<%= insc.atendimentoEspecial.laudoDocumento.id %>/arquivo" target="_blank">Ver laudo</a></dd><% } %>
+      </dl>
+    <% } %>
+  </div>
+</div>
+
+<% if (insc.status === 'indeferida') { %>
+  <div class="card">
+    <div class="flash flash-erro"><strong>Indeferida.</strong> Motivo: <%= insc.motivoIndeferimento || '—' %><% if (insc.reenvioAteEm) { %> · Reenvio até <%= fmt.fmtDataHora(insc.reenvioAteEm) %><% } %></div>
+  </div>
+<% } %>
+
+<% if (insc.status !== 'cancelada') { %>
+<div class="card">
+  <h2>Homologação</h2>
+  <div class="acoes" style="margin-top:0">
+    <% if (insc.status !== 'homologada') { %>
+      <form action="/admin/inscricoes/<%= insc.id %>/homologar" method="post" onsubmit="return confirm('Homologar esta inscrição? O candidato será notificado.');" style="display:inline">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn ok" type="submit">Homologar</button>
+      </form>
+    <% } else { %><span class="badge badge-ok">Já homologada</span><% } %>
+  </div>
+
+  <h3 style="margin-top:20px">Indeferir</h3>
+  <form action="/admin/inscricoes/<%= insc.id %>/indeferir" method="post" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label for="motivo">Motivo do indeferimento</label>
+    <textarea id="motivo" name="motivo" rows="3" required <%= erros.motivo ? 'aria-invalid="true"' : '' %>></textarea>
+    <% if (erros.motivo) { %><p class="erro-campo"><%= erros.motivo %></p><% } %>
+    <p class="dica"><% if (flags.janela_reenvio_documento_dias > 0) { %>O candidato receberá uma janela de <%= flags.janela_reenvio_documento_dias %> dia(s) para reenviar a documentação.<% } else { %>Reenvio desativado para este edital.<% } %></p>
+    <div class="acoes"><button class="btn perigo" type="submit">Indeferir e notificar</button></div>
+  </form>
+</div>
+<% } %>
+
+<% if (insc.recursos && insc.recursos.length) { %>
+  <div class="card">
+    <h2>Recursos desta inscrição</h2>
+    <ul>
+      <% insc.recursos.forEach(function(r){ %>
+        <li><a href="/admin/recursos/<%= r.id %>"><%= fmt.ROTULO_FASE_RECURSO[r.fase] %> — <%= r.protocolo %></a> <span class="badge <%= r.status === 'deferido' ? 'badge-ok' : (r.status === 'indeferido' ? 'badge-erro' : 'badge-warn') %>"><%= fmt.ROTULO_STATUS_RECURSO[r.status] %></span></li>
+      <% }); %>
+    </ul>
+  </div>
+<% } %>
+<%- include('partials/footer') %>

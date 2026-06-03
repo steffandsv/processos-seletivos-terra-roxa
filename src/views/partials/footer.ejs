@@ -1,0 +1,20 @@
+  </main>
+  <footer class="rodape">
+    <div class="rodape-inner">
+      <div class="rodape-brasao">
+        <img src="/public/img/brasao-180.png" alt="">
+        <div>
+          <strong><%= orgao.nome %> — <%= orgao.uf %></strong><br>
+          Sistema de Processos Seletivos
+        </div>
+      </div>
+      <div>
+        <a href="/aviso-de-privacidade">Aviso de Privacidade</a> ·
+        <a href="/termos-de-uso">Termos de Uso</a> ·
+        <a href="/admin/login">Acesso administrativo</a>
+        <% if (orgao.dpoContato) { %><br><span class="muted">Encarregado (DPO): <%= orgao.dpoContato %></span><% } %>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

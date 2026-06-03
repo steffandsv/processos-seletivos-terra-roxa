@@ -1,0 +1,26 @@
+<%- include('partials/head') %>
+<h1>Minhas inscrições</h1>
+<% if (inscricoes.length === 0) { %>
+  <div class="card vazio">Você ainda não possui inscrições. <a href="/">Veja os editais abertos</a>.</div>
+<% } else { %>
+  <div class="card">
+    <div class="tabela-wrap">
+      <table>
+        <thead><tr><th>Nº</th><th>Edital</th><th>Cargo</th><th>Situação</th><th>Enviada em</th><th></th></tr></thead>
+        <tbody>
+          <% inscricoes.forEach(function(i){ %>
+            <tr>
+              <td><%= i.numeroInscricao %></td>
+              <td><%= i.edital.numero %><br><span class="muted"><%= i.edital.titulo %></span></td>
+              <td><%= i.cargo.nome %></td>
+              <td><span class="badge <%= fmt.CLASSE_STATUS_INSCRICAO[i.status] %>"><%= fmt.ROTULO_STATUS_INSCRICAO[i.status] %></span></td>
+              <td><%= fmt.fmtDataHora(i.criadoEm) %></td>
+              <td><a href="/minhas-inscricoes/<%= i.id %>">Detalhes</a></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>
+<%- include('partials/footer') %>
