@@ -45,7 +45,6 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
           DOC_ENCRYPTION_KEY: ${{ secrets.DOC_ENCRYPTION_KEY }}
-          POSTGRES_NETWORK: ${{ secrets.POSTGRES_NETWORK }}
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
           DPO_CONTATO: ${{ secrets.DPO_CONTATO }}
           STORAGE_DRIVER: ${{ secrets.STORAGE_DRIVER }}
@@ -58,7 +57,7 @@ jobs:
           port: 2222
           username: steffan
           password: ${{ secrets.VPS_SSH_PASSWORD }}
-          envs: REPO_URL,APP_DIR,VPS_SSH_PASSWORD,DATABASE_URL,SESSION_SECRET,DOC_ENCRYPTION_KEY,POSTGRES_NETWORK,MAIL_FROM,DPO_CONTATO,STORAGE_DRIVER,WEBDAV_BASE_URL,WEBDAV_USER,WEBDAV_PASS,WEBDAV_ROOT
+          envs: REPO_URL,APP_DIR,VPS_SSH_PASSWORD,DATABASE_URL,SESSION_SECRET,DOC_ENCRYPTION_KEY,MAIL_FROM,DPO_CONTATO,STORAGE_DRIVER,WEBDAV_BASE_URL,WEBDAV_USER,WEBDAV_PASS,WEBDAV_ROOT
           script: |
             set -u
             APP_DIR="${APP_DIR:-/opt/processo-seletivo}"
@@ -92,7 +91,6 @@ jobs:
             PORT=3000
             HOST=0.0.0.0
             APP_BASE_URL=https://processoseletivo.terraroxa.sp.gov.br
-            DOMAIN=processoseletivo.terraroxa.sp.gov.br
             COOKIE_SECURE=true
             UPLOAD_DIR=/data/uploads
             DATABASE_URL=${DATABASE_URL}
@@ -107,7 +105,6 @@ jobs:
             ORGAO_NOME=Prefeitura Municipal de Terra Roxa
             ORGAO_UF=SP
             DPO_CONTATO=${DPO_CONTATO:-}
-            POSTGRES_NETWORK=${POSTGRES_NETWORK}
             ENVEOF
 
             echo "==> Build e subida dos containers (root)"

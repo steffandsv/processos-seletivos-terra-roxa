@@ -3,8 +3,9 @@
 # (processoseletivo.terraroxa.sp.gov.br) ficam a cargo do SEU proxy reverso
 # já existente no VPS, que deve encaminhar para 127.0.0.1:3005.
 #
-# O Postgres NÃO é definido aqui: já existe em seu próprio container. O app o
-# alcança pela rede Docker compartilhada (network externa "db").
+# O Postgres NÃO é definido aqui: já existe e está publicado na porta 5432 do
+# host. O app o alcança via "host.docker.internal" (mapeado para o gateway do
+# host), então a DATABASE_URL usa host.docker.internal:5432.
 services:
   app:
     build: .
@@ -22,19 +23,9 @@ services:
       # host:container — publica na 3005 do host. Para restringir ao loopback
       # (se o seu proxy alcançar 127.0.0.1), use "127.0.0.1:3005:3000".
       - "3005:3000"
-    networks:
-      - db
-      - app_net
+    extra_hosts:
+      # permite ao container alcançar serviços publicados no host (ex.: Postgres)
+      - "host.docker.internal:host-gateway"
 
 volumes:
   uploads:
-
-networks:
-  # Rede onde o container do Postgres já está conectado.
-  # Ajuste via POSTGRES_NETWORK (ex.: "mabus_default", "mabus-postgres_default").
-  db:
-    external: true
-    name: ${POSTGRES_NETWORK:-mabus_default}
-  # Rede própria do app (garante egress p/ SMTP e WebDAV/Nextcloud).
-  app_net:
-    driver: bridge
