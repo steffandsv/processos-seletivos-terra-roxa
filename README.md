@@ -90,21 +90,27 @@ CREATE DATABASE processos_seletivos OWNER processos_app;
 
 `DATABASE_URL=postgresql://processos_app:SENHA@HOST:5432/processos_seletivos?schema=public`
 
-## Deploy (Docker + Caddy + GitHub Actions)
+## Deploy (Docker + GitHub Actions)
 
 ```
-[ caddy ] --rede--> [ app-node ] --rede--> [ postgres (já existente) ]
-                         +--> volume: uploads
-                         +--> SMTP externo (env)
+[ proxy reverso já existente (TLS/domínio) ] --> 127.0.0.1:3005 --> [ app-node:3000 ]
+                                                                          +--> volume: uploads
+                                                                          +--> rede do Postgres (já existente)
+                                                                          +--> WebDAV/Nextcloud (uploads cifrados) ou volume local
 ```
 
-1. No host: clone do repo, `.env` de produção (`UPLOAD_DIR=/data/uploads`, `COOKIE_SECURE=true`,
-   `APP_BASE_URL=https://seu-dominio`, `DATABASE_URL` apontando para o container Postgres pela
-   rede Docker compartilhada). Defina `DOMAIN` e `POSTGRES_NETWORK` (nome da rede do Postgres).
+O app **publica na porta de host 3005** (sem Caddy próprio, para não conflitar com outros
+containers). O **TLS e o domínio** `processoseletivo.terraroxa.sp.gov.br` ficam a cargo do
+**seu proxy reverso já existente**, que encaminha para `127.0.0.1:3005`.
+
+1. No host: `.env` de produção (`UPLOAD_DIR=/data/uploads`, `COOKIE_SECURE=true`,
+   `APP_BASE_URL=https://processoseletivo.terraroxa.sp.gov.br`, `DATABASE_URL` apontando para o
+   container Postgres pela rede Docker compartilhada, `POSTGRES_NETWORK`). Para Nextcloud:
+   `STORAGE_DRIVER=webdav` + `WEBDAV_*`.
 2. `docker compose up -d --build`. O `docker-entrypoint.sh` roda `prisma migrate deploy` e sobe o app.
 3. CI/CD: push em `main` → GitHub Actions roda **lint + testes** e faz **deploy por SSH**
-   (porta **2222**, usuário **root**, autenticação por **senha**). O workflow grava o `.env`
-   a partir dos secrets e roda `docker compose build && docker compose up -d`. Secrets:
+   (porta **2222**, usuário **steffan** com **sudo**, autenticação por **senha**). O workflow grava
+   o `.env` a partir dos secrets e roda `docker compose build && docker compose up -d`. Secrets:
    `VPS_HOST`, `VPS_SSH_PASSWORD`, `DATABASE_URL`, `POSTGRES_NETWORK` (obrigatórios);
    `SESSION_SECRET`, `DOC_ENCRYPTION_KEY` (gerados); `MAIL_FROM`, `DPO_CONTATO`,
    `STORAGE_DRIVER`, `WEBDAV_*` (opcionais).

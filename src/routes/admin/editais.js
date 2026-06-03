@@ -4,7 +4,7 @@ import prisma from '../../db.js';
 import config from '../../config.js';
 import { csrfGuard, validarCsrf } from '../../plugins/auth.js';
 import { editalSchema, cargoSchema, errosZod } from '../../lib/validators.js';
-import { parseDataInput, lerMultipart } from '../../lib/web.js';
+import { parseDataInput, lerMultipart, subpastaDoEdital } from '../../lib/web.js';
 import { CONFIG_FASES_PADRAO, ROTULOS_FASES, normalizarConfigFases } from '../../lib/fases.js';
 import { registrarAuditoria } from '../../lib/audit.js';
 import { salvarArquivo, removerArquivo } from '../../lib/upload.js';
@@ -186,7 +186,7 @@ export default async function adminEditais(fastify) {
       reply.flash('erro', 'O PDF do edital excede 8 MB.');
       return reply.redirect(`/admin/editais/${id}`);
     }
-    const nome = await salvarArquivo(arquivo.buffer, arquivo.mimetype);
+    const nome = await salvarArquivo(arquivo.buffer, arquivo.mimetype, { subpasta: subpastaDoEdital(edital) });
     const anterior = edital.editalArquivoPath;
     await prisma.edital.update({ where: { id }, data: { editalArquivoPath: nome, editalNomeOriginal: arquivo.filename, editalMime: arquivo.mimetype } });
     if (anterior) await removerArquivo(anterior).catch(() => {});

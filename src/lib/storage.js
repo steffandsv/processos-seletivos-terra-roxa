@@ -1,27 +1,34 @@
 // Driver de armazenamento de bytes (já cifrados). Selecionável por ambiente:
 //   STORAGE_DRIVER=local   -> volume Docker (fs)            [padrão]
-//   STORAGE_DRIVER=webdav  -> Nextcloud via WebDAV (fetch)  [pronto p/ ativar]
-// A criptografia acontece em upload.js ANTES de chamar o driver — assim o
-// Nextcloud só armazena conteúdo cifrado (proteção LGPD em repouso).
+//   STORAGE_DRIVER=webdav  -> Nextcloud via WebDAV (fetch)
+// As "chaves" (keys) são caminhos relativos com subpastas, ex.:
+//   "2026/001-2026/<hash>.pdf.enc"  (organização por ANO/NÚMERO do edital).
+// Em ambos os drivers as pastas são criadas automaticamente se não existirem.
+// A criptografia acontece em upload.js ANTES de chamar o driver.
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import config from '../config.js';
+
+function segmentos(p) {
+  return String(p).split('/').map((s) => s.trim()).filter(Boolean);
+}
 
 // ----------------------------- Local (fs) ----------------------------------
 const localDriver = {
   async init() {
     await fs.mkdir(config.uploadDir, { recursive: true });
   },
-  async put(nome, buffer) {
-    await fs.mkdir(config.uploadDir, { recursive: true });
-    await fs.writeFile(path.join(config.uploadDir, nome), buffer, { mode: 0o600 });
+  async put(key, buffer) {
+    const destino = path.join(config.uploadDir, key);
+    await fs.mkdir(path.dirname(destino), { recursive: true });
+    await fs.writeFile(destino, buffer, { mode: 0o600 });
   },
-  async get(nome) {
-    return fs.readFile(path.join(config.uploadDir, nome));
+  async get(key) {
+    return fs.readFile(path.join(config.uploadDir, key));
   },
-  async del(nome) {
+  async del(key) {
     try {
-      await fs.unlink(path.join(config.uploadDir, nome));
+      await fs.unlink(path.join(config.uploadDir, key));
     } catch (e) {
       if (e.code !== 'ENOENT') throw e;
     }
@@ -33,43 +40,59 @@ function webdavCfg() {
   const w = config.storage.webdav;
   if (!w.baseUrl) throw new Error('STORAGE_DRIVER=webdav requer WEBDAV_BASE_URL (e WEBDAV_USER/WEBDAV_PASS).');
   const auth = 'Basic ' + Buffer.from(`${w.user}:${w.pass}`).toString('base64');
-  const base = `${w.baseUrl}/${w.root}`.replace(/\/+$/, '');
-  return { w, auth, base };
+  return { w, auth };
 }
 
-let _rootGarantido = false;
+// Monta a URL completa codificando cada segmento (preservando as barras).
+function urlDe(caminho) {
+  const { w } = webdavCfg();
+  const partes = [...segmentos(w.root), ...segmentos(caminho)].map(encodeURIComponent);
+  return `${w.baseUrl}/${partes.join('/')}`;
+}
+
+const _pastasCriadas = new Set();
+
+async function garantirPastas(dirRelativo) {
+  const { w, auth } = webdavCfg();
+  const partes = [...segmentos(w.root), ...segmentos(dirRelativo)];
+  let acc = '';
+  for (const parte of partes) {
+    acc = acc ? `${acc}/${parte}` : parte;
+    if (_pastasCriadas.has(acc)) continue;
+    const url = `${w.baseUrl}/${acc.split('/').map(encodeURIComponent).join('/')}`;
+    const r = await fetch(url, { method: 'MKCOL', headers: { Authorization: auth } });
+    // 201 = criada; 405 = já existe; 301 = já existe (redir). Tudo aceitável.
+    if (![201, 405, 301, 200].includes(r.status)) {
+      throw new Error(`WebDAV MKCOL falhou (${r.status}) em ${acc}`);
+    }
+    _pastasCriadas.add(acc);
+  }
+}
 
 const webdavDriver = {
   async init() {
-    // Cria a subpasta raiz (MKCOL é idempotente: 405 se já existir).
-    const { auth, base } = webdavCfg();
-    if (_rootGarantido) return;
-    const r = await fetch(base, { method: 'MKCOL', headers: { Authorization: auth } });
-    if (![201, 405, 301, 200].includes(r.status)) {
-      // 409 = pai inexistente; deixamos explícito para diagnóstico.
-      throw new Error(`WebDAV MKCOL falhou (${r.status}) em ${base}`);
-    }
-    _rootGarantido = true;
+    await garantirPastas(''); // garante a pasta raiz configurada
   },
-  async put(nome, buffer) {
-    const { auth, base } = webdavCfg();
-    await this.init();
-    const r = await fetch(`${base}/${encodeURIComponent(nome)}`, {
+  async put(key, buffer) {
+    const { auth } = webdavCfg();
+    const dir = segmentos(key).slice(0, -1).join('/');
+    if (dir) await garantirPastas(dir);
+    const r = await fetch(urlDe(key), {
       method: 'PUT',
       headers: { Authorization: auth, 'Content-Type': 'application/octet-stream' },
       body: buffer,
     });
     if (![200, 201, 204].includes(r.status)) throw new Error(`WebDAV PUT falhou (${r.status})`);
   },
-  async get(nome) {
-    const { auth, base } = webdavCfg();
-    const r = await fetch(`${base}/${encodeURIComponent(nome)}`, { headers: { Authorization: auth } });
+  async get(key) {
+    const { auth } = webdavCfg();
+    const r = await fetch(urlDe(key), { headers: { Authorization: auth } });
     if (!r.ok) throw new Error(`WebDAV GET falhou (${r.status})`);
     return Buffer.from(await r.arrayBuffer());
   },
-  async del(nome) {
-    const { auth, base } = webdavCfg();
-    const r = await fetch(`${base}/${encodeURIComponent(nome)}`, { method: 'DELETE', headers: { Authorization: auth } });
+  async del(key) {
+    const { auth } = webdavCfg();
+    const r = await fetch(urlDe(key), { method: 'DELETE', headers: { Authorization: auth } });
     if (![200, 204, 404].includes(r.status)) throw new Error(`WebDAV DELETE falhou (${r.status})`);
   },
 };

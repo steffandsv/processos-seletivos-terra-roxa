@@ -3,7 +3,7 @@ import prisma from '../../db.js';
 import config from '../../config.js';
 import { csrfGuard, validarCsrf } from '../../plugins/auth.js';
 import { publicacaoSchema, respostaRecursoSchema, errosZod } from '../../lib/validators.js';
-import { lerMultipart, paginacao } from '../../lib/web.js';
+import { lerMultipart, paginacao, subpastaDoEdital } from '../../lib/web.js';
 import { salvarArquivo, lerArquivo, removerArquivo } from '../../lib/upload.js';
 import { registrarAuditoria } from '../../lib/audit.js';
 import { enviarRespostaRecurso } from '../../lib/email.js';
@@ -34,7 +34,7 @@ export default async function adminTransparencia(fastify) {
       reply.code(400);
       return reply.render('admin-publicacoes', { titulo: `Publicações — ${edital.numero}`, edital: comPub, erros, valores: fields });
     }
-    const nome = await salvarArquivo(arquivo.buffer, arquivo.mimetype);
+    const nome = await salvarArquivo(arquivo.buffer, arquivo.mimetype, { subpasta: subpastaDoEdital(edital) });
     const pub = await prisma.publicacao.create({ data: { editalId: id, tipo: parsed.data.tipo, titulo: parsed.data.titulo, arquivoPath: nome, nomeOriginal: arquivo.filename, mime: arquivo.mimetype } });
     await registrarAuditoria({ ator: 'admin', atorId: request.sessao.id, acao: 'publicacao.criada', entidade: 'publicacao', entidadeId: pub.id, detalhes: { tipo: pub.tipo, titulo: pub.titulo }, ip: request.ip });
     reply.flash('sucesso', 'Publicação adicionada com carimbo de data/hora.');

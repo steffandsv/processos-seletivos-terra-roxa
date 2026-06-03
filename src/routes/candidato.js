@@ -17,6 +17,7 @@ import {
   flagsEdital,
   inscricoesAbertas,
   criarInscricaoComNumero,
+  subpastaDoEdital,
 } from '../lib/web.js';
 import { salvarArquivo, lerArquivo, removerArquivo } from '../lib/upload.js';
 import { gerarProtocolo } from '../lib/crypto.js';
@@ -265,8 +266,9 @@ export default async function rotasCandidato(fastify) {
     let docFotoNome = null;
     let laudoNome = null;
     try {
-      if (docFoto) docFotoNome = await salvarArquivo(docFoto.buffer, docFoto.mimetype);
-      if (laudo) laudoNome = await salvarArquivo(laudo.buffer, laudo.mimetype);
+      const subpasta = subpastaDoEdital(edital);
+      if (docFoto) docFotoNome = await salvarArquivo(docFoto.buffer, docFoto.mimetype, { subpasta });
+      if (laudo) laudoNome = await salvarArquivo(laudo.buffer, laudo.mimetype, { subpasta });
 
       const statusInicial = flags.fase_homologacao ? 'em_analise' : 'enviada';
       const inscricao = await criarInscricaoComNumero({
@@ -325,7 +327,7 @@ export default async function rotasCandidato(fastify) {
     else if (docFoto.size > config.maxUploadBytes) erros.documento = 'Arquivo excede 8 MB.';
     if (Object.keys(erros).length) { reply.code(400); return reply.render('candidato-reenviar', { titulo: `Reenvio — ${insc.numeroInscricao}`, insc, erros }); }
 
-    const novoNome = await salvarArquivo(docFoto.buffer, docFoto.mimetype);
+    const novoNome = await salvarArquivo(docFoto.buffer, docFoto.mimetype, { subpasta: subpastaDoEdital(insc.edital) });
     const flags = flagsEdital(insc.edital);
     // Remove documentos de foto anteriores e adiciona o novo.
     const antigos = insc.documentos.filter((d) => d.tipo === 'doc_foto');
@@ -372,7 +374,7 @@ export default async function rotasCandidato(fastify) {
       return reply.render('candidato-recurso', { titulo: 'Interpor recurso', insc, fase, erros: { anexo: 'Anexo em formato inválido (PDF, JPG ou PNG).' }, valores: fields });
     }
     let anexoNome = null;
-    if (anexo) anexoNome = await salvarArquivo(anexo.buffer, anexo.mimetype);
+    if (anexo) anexoNome = await salvarArquivo(anexo.buffer, anexo.mimetype, { subpasta: subpastaDoEdital(insc.edital) });
 
     const ano = new Date().getFullYear();
     const recurso = await prisma.recurso.create({ data: { inscricaoId: insc.id, fase, protocolo: gerarProtocolo('REC', ano), texto: parsed.data.texto, anexoPath: anexoNome, status: 'aberto' } });

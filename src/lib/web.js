@@ -2,6 +2,22 @@
 // estado do edital e parsing de datas de formulário.
 import prisma from '../db.js';
 import { normalizarConfigFases } from './fases.js';
+import { sanitizarSegmento } from './upload.js';
+
+/**
+ * Subpasta de armazenamento de um edital: "{ANO}/{NÚMERO}".
+ * Ex.: edital "001/2026" -> "2026/001-2026". Usada para organizar os uploads
+ * (ver Pasta raiz do WebDAV: Publicacoes/Processos Seletivos/{ANO}/{NUMERO}).
+ */
+export function subpastaDoEdital(edital) {
+  const numero = sanitizarSegmento(edital?.numero);
+  let ano = (String(edital?.numero || '').match(/(20\d{2})/) || [])[1];
+  if (!ano) {
+    const base = edital?.dataAberturaInscricao || edital?.criadoEm || new Date();
+    ano = String(new Date(base).getFullYear());
+  }
+  return `${ano}/${numero}`;
+}
 
 /**
  * Lê um corpo multipart por completo (campos + arquivos em buffer).

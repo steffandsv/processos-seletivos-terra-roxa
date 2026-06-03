@@ -1,6 +1,10 @@
-# Topologia: [caddy] -> [app-node] -> [postgres (já existente)]  (§3.1)
-# O Postgres NÃO é definido aqui: já existe em seu próprio container. O app se
-# conecta a ele pela rede Docker compartilhada (network externa "db").
+# App em container único, publicando na porta de HOST 3005 (saída), para não
+# conflitar com outros containers. O TLS e o domínio
+# (processoseletivo.terraroxa.sp.gov.br) ficam a cargo do SEU proxy reverso
+# já existente no VPS, que deve encaminhar para 127.0.0.1:3005.
+#
+# O Postgres NÃO é definido aqui: já existe em seu próprio container. O app o
+# alcança pela rede Docker compartilhada (network externa "db").
 services:
   app:
     build: .
@@ -14,38 +18,23 @@ services:
       PORT: "3000"
     volumes:
       - uploads:/data/uploads
-    networks:
-      - web
-      - db
-    expose:
-      - "3000"
-
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      DOMAIN: ${DOMAIN:-localhost}
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+      # host:container — publica na 3005 do host. Para restringir ao loopback
+      # (se o seu proxy alcançar 127.0.0.1), use "127.0.0.1:3005:3000".
+      - "3005:3000"
     networks:
-      - web
-    depends_on:
-      - app
+      - db
+      - app_net
 
 volumes:
   uploads:
-  caddy_data:
-  caddy_config:
 
 networks:
-  web:
   # Rede onde o container do Postgres já está conectado.
-  # Ajuste o nome via variável POSTGRES_NETWORK (ex.: "mabus-postgres_default").
+  # Ajuste via POSTGRES_NETWORK (ex.: "mabus_default", "mabus-postgres_default").
   db:
     external: true
     name: ${POSTGRES_NETWORK:-mabus_default}
+  # Rede própria do app (garante egress p/ SMTP e WebDAV/Nextcloud).
+  app_net:
+    driver: bridge
