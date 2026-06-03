@@ -93,15 +93,17 @@ CREATE DATABASE processos_seletivos OWNER processos_app;
 ## Deploy (Docker + GitHub Actions)
 
 ```
-[ proxy reverso já existente (TLS/domínio) ] --> 127.0.0.1:3005 --> [ app-node:3000 ]
-                                                                          +--> volume: uploads
-                                                                          +--> rede do Postgres (já existente)
-                                                                          +--> WebDAV/Nextcloud (uploads cifrados) ou volume local
+[ proxy reverso já existente (TLS/domínio) ] --> host:APP_PORT --> [ app-node:3000 ]
+                                                                        +--> volume: uploads
+                                                                        +--> Postgres do host (host.docker.internal:5432)
+                                                                        +--> WebDAV/Nextcloud (uploads cifrados) ou volume local
 ```
 
-O app **publica na porta de host 3005** (sem Caddy próprio, para não conflitar com outros
-containers). O **TLS e o domínio** `processoseletivo.terraroxa.sp.gov.br` ficam a cargo do
-**seu proxy reverso já existente**, que encaminha para `127.0.0.1:3005`.
+O app **publica na porta de host `APP_PORT`** (secret; padrão 3005, em produção **3009**),
+sem Caddy próprio, para não conflitar com outros containers. O **TLS e o domínio**
+`processoseletivo.terraroxa.sp.gov.br` ficam a cargo do **seu proxy reverso já existente**,
+que encaminha para essa porta. O Postgres (já existente, publicado no host) é alcançado via
+`host.docker.internal:5432`.
 
 1. No host: `.env` de produção (`UPLOAD_DIR=/data/uploads`, `COOKIE_SECURE=true`,
    `APP_BASE_URL=https://processoseletivo.terraroxa.sp.gov.br`, `DATABASE_URL` apontando para o
