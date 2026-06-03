@@ -41,6 +41,7 @@ jobs:
         env:
           REPO_URL: https://github.com/${{ github.repository }}.git
           APP_DIR: ${{ secrets.APP_DIR }}
+          APP_PORT: ${{ secrets.APP_PORT }}
           VPS_SSH_PASSWORD: ${{ secrets.VPS_SSH_PASSWORD }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
@@ -57,7 +58,7 @@ jobs:
           port: 2222
           username: steffan
           password: ${{ secrets.VPS_SSH_PASSWORD }}
-          envs: REPO_URL,APP_DIR,VPS_SSH_PASSWORD,DATABASE_URL,SESSION_SECRET,DOC_ENCRYPTION_KEY,MAIL_FROM,DPO_CONTATO,STORAGE_DRIVER,WEBDAV_BASE_URL,WEBDAV_USER,WEBDAV_PASS,WEBDAV_ROOT
+          envs: REPO_URL,APP_DIR,APP_PORT,VPS_SSH_PASSWORD,DATABASE_URL,SESSION_SECRET,DOC_ENCRYPTION_KEY,MAIL_FROM,DPO_CONTATO,STORAGE_DRIVER,WEBDAV_BASE_URL,WEBDAV_USER,WEBDAV_PASS,WEBDAV_ROOT
           script: |
             set -u
             APP_DIR="${APP_DIR:-/opt/processo-seletivo}"
@@ -105,12 +106,18 @@ jobs:
             ORGAO_NOME=Prefeitura Municipal de Terra Roxa
             ORGAO_UF=SP
             DPO_CONTATO=${DPO_CONTATO:-}
+            APP_PORT=${APP_PORT:-3005}
             ENVEOF
 
-            echo "==> Build e subida dos containers (root)"
+            PORTA="${APP_PORT:-3005}"
+            echo "==> Quem ocupa a porta $PORTA no host:"
+            S ss -ltnp 2>/dev/null | grep ":$PORTA " || echo "    (porta $PORTA livre)"
+
+            echo "==> Subindo containers (root)"
             cd "$APP_DIR"
+            S docker compose down --remove-orphans 2>/dev/null || true
             S docker compose build 2>&1 || fail "docker compose build"
-            S docker compose up -d --remove-orphans 2>&1 || fail "docker compose up"
+            S docker compose up -d --remove-orphans 2>&1 || fail "docker compose up (porta $PORTA ocupada? defina o secret APP_PORT com uma porta livre)"
             S docker image prune -f >/dev/null 2>&1 || true
 
             echo "==> Healthcheck"

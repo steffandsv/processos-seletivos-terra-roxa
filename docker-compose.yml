@@ -20,9 +20,9 @@ services:
     volumes:
       - uploads:/data/uploads
     ports:
-      # host:container — publica na 3005 do host. Para restringir ao loopback
-      # (se o seu proxy alcançar 127.0.0.1), use "127.0.0.1:3005:3000".
-      - "3005:3000"
+      # host:container — publica na porta APP_PORT do host (default 3005).
+      # Configurável pelo secret APP_PORT (gravado no .env pelo workflow).
+      - "${APP_PORT:-3005}:3000"
     extra_hosts:
       # permite ao container alcançar serviços publicados no host (ex.: Postgres)
       - "host.docker.internal:host-gateway"
