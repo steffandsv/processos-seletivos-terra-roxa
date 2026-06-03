@@ -7,6 +7,9 @@ on:
     branches: [main]
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # 1) Qualidade: lint + testes (não precisa de segredos nem de banco)
+  # ---------------------------------------------------------------------------
   ci:
     name: Lint + Testes
     runs-on: ubuntu-latest
@@ -21,25 +24,85 @@ jobs:
       - run: npm run lint
       - run: npm test
 
+  # ---------------------------------------------------------------------------
+  # 2) Deploy: SSH no VPS (porta 2222, root), grava o .env a partir dos secrets,
+  #    builda e sobe os containers (Caddy + app). As migrations rodam no start
+  #    do container (docker-entrypoint.sh -> prisma migrate deploy).
+  # ---------------------------------------------------------------------------
   deploy:
-    name: Deploy (SSH no host)
+    name: Deploy no VPS
     needs: ci
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          REPO_URL: https://github.com/${{ github.repository }}.git
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          DOC_ENCRYPTION_KEY: ${{ secrets.DOC_ENCRYPTION_KEY }}
+          POSTGRES_NETWORK: ${{ secrets.POSTGRES_NETWORK }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          DPO_CONTATO: ${{ secrets.DPO_CONTATO }}
+          STORAGE_DRIVER: ${{ secrets.STORAGE_DRIVER }}
+          WEBDAV_BASE_URL: ${{ secrets.WEBDAV_BASE_URL }}
+          WEBDAV_USER: ${{ secrets.WEBDAV_USER }}
+          WEBDAV_PASS: ${{ secrets.WEBDAV_PASS }}
+          WEBDAV_ROOT: ${{ secrets.WEBDAV_ROOT }}
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT || 22 }}
+          host: ${{ secrets.VPS_HOST }}
+          port: 2222
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # Encaminha os segredos para o script remoto (viram variáveis de ambiente lá)
+          envs: REPO_URL,DATABASE_URL,SESSION_SECRET,DOC_ENCRYPTION_KEY,POSTGRES_NETWORK,MAIL_FROM,DPO_CONTATO,STORAGE_DRIVER,WEBDAV_BASE_URL,WEBDAV_USER,WEBDAV_PASS,WEBDAV_ROOT
+          script_stop: true
           script: |
-            set -e
-            cd ${{ secrets.APP_DIR }}
-            git pull --ff-only
-            # O .env de produção vive no host (nunca no repositório).
+            set -eu
+            APP_DIR=/opt/processos-seletivos
+
+            echo "==> Sincronizando o repositório"
+            mkdir -p "$APP_DIR"
+            cd "$APP_DIR"
+            if [ -d .git ]; then
+              git fetch --depth=1 origin main
+              git reset --hard origin/main
+            else
+              git clone --depth=1 "$REPO_URL" .
+            fi
+
+            echo "==> Gravando .env de produção (a partir dos GitHub Secrets)"
+            umask 077
+            cat > .env <<ENVEOF
+            NODE_ENV=production
+            PORT=3000
+            HOST=0.0.0.0
+            APP_BASE_URL=https://processoseletivo.terraroxa.sp.gov.br
+            DOMAIN=processoseletivo.terraroxa.sp.gov.br
+            COOKIE_SECURE=true
+            UPLOAD_DIR=/data/uploads
+            DATABASE_URL=${DATABASE_URL}
+            SESSION_SECRET=${SESSION_SECRET}
+            DOC_ENCRYPTION_KEY=${DOC_ENCRYPTION_KEY}
+            STORAGE_DRIVER=${STORAGE_DRIVER:-local}
+            WEBDAV_BASE_URL=${WEBDAV_BASE_URL:-}
+            WEBDAV_USER=${WEBDAV_USER:-}
+            WEBDAV_PASS=${WEBDAV_PASS:-}
+            WEBDAV_ROOT=${WEBDAV_ROOT:-processos-seletivos}
+            MAIL_FROM=${MAIL_FROM:-Processos Seletivos - Terra Roxa <nao-responda@terraroxa.sp.gov.br>}
+            ORGAO_NOME=Prefeitura Municipal de Terra Roxa
+            ORGAO_UF=SP
+            DPO_CONTATO=${DPO_CONTATO:-}
+            POSTGRES_NETWORK=${POSTGRES_NETWORK}
+            ENVEOF
+
+            echo "==> Build e subida dos containers"
             docker compose build
-            docker compose up -d
+            docker compose up -d --remove-orphans
             docker image prune -f
-            # migrate deploy roda automaticamente no entrypoint do container.
+
+            echo "==> Healthcheck"
+            sleep 5
+            docker compose ps
+            curl -fsS --max-time 10 http://127.0.0.1:3000/health && echo " OK"
