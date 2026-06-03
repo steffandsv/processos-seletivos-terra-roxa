@@ -47,4 +47,44 @@
     cepInput.addEventListener('blur', buscar);
     cepInput.addEventListener('change', buscar);
   }
+
+  // ---- 3) Máscara de moeda BRL (estilo app de banco) ----
+  function formatarBRL(digits) {
+    digits = (digits || '').replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+    while (digits.length < 3) digits = '0' + digits;
+    var cent = digits.slice(-2);
+    var reais = digits.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return 'R$ ' + reais + ',' + cent;
+  }
+  document.querySelectorAll('[data-moeda]').forEach(function (inp) {
+    var aplicar = function () {
+      var d = inp.value.replace(/\D/g, '');
+      inp.value = d ? formatarBRL(d) : '';
+    };
+    inp.addEventListener('input', aplicar);
+    inp.addEventListener('blur', aplicar);
+    if (inp.value.trim()) aplicar(); // formata o valor que veio do servidor
+  });
+
+  // ---- 4) Inscrição: baixar edital libera o aceite; aceite libera o envio ----
+  var form = document.querySelector('[data-form-inscricao]');
+  if (form) {
+    var aceite = form.querySelector('#aceiteTermos');
+    var enviar = form.querySelector('#btn-enviar');
+    var baixar = form.querySelector('#baixar-edital');
+    var dica = form.querySelector('#dica-aceite');
+    var temEdital = form.hasAttribute('data-tem-edital');
+    var sync = function () { if (enviar) enviar.disabled = !(aceite && aceite.checked && !aceite.disabled); };
+    if (temEdital && baixar && aceite) {
+      aceite.disabled = true;
+      if (dica) dica.textContent = '⬆️ Primeiro baixe o edital (botão roxo acima). Depois este aceite é liberado.';
+      baixar.addEventListener('click', function () {
+        aceite.disabled = false;
+        if (dica) dica.textContent = '✓ Edital baixado. Agora marque o aceite e clique em "Enviar inscrição".';
+        sync();
+      });
+    }
+    if (aceite) aceite.addEventListener('change', sync);
+    sync();
+  }
 })();

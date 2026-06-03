@@ -1,12 +1,13 @@
 // CRUD de editais + configurador de fases (§2), cargos, publicação,
 // encerramento e expurgo LGPD.
 import prisma from '../../db.js';
-import { csrfGuard } from '../../plugins/auth.js';
+import config from '../../config.js';
+import { csrfGuard, validarCsrf } from '../../plugins/auth.js';
 import { editalSchema, cargoSchema, errosZod } from '../../lib/validators.js';
-import { parseDataInput } from '../../lib/web.js';
+import { parseDataInput, lerMultipart } from '../../lib/web.js';
 import { CONFIG_FASES_PADRAO, ROTULOS_FASES, normalizarConfigFases } from '../../lib/fases.js';
 import { registrarAuditoria } from '../../lib/audit.js';
-import { removerArquivo } from '../../lib/upload.js';
+import { salvarArquivo, removerArquivo } from '../../lib/upload.js';
 
 const FLAGS_BOOL = [
   'permite_multiplas_vagas', 'exige_documento_foto', 'fase_homologacao',
@@ -145,6 +146,64 @@ export default async function adminEditais(fastify) {
     await registrarAuditoria({ ator: 'admin', atorId: request.sessao.id, acao: 'cargo.excluido', entidade: 'edital', entidadeId: cargo.editalId, detalhes: { cargo: cargo.nome }, ip: request.ip });
     reply.flash('sucesso', 'Cargo excluído.');
     return reply.redirect(`/admin/editais/${cargo.editalId}`);
+  });
+
+  // Editar cargo
+  fastify.get('/cargos/:id/editar', async (request, reply) => {
+    const cargo = await prisma.cargo.findUnique({ where: { id: Number(request.params.id) }, include: { edital: true } });
+    if (!cargo) { reply.code(404); return reply.render('nao-encontrado', { titulo: 'Cargo não encontrado' }); }
+    return reply.render('admin-cargo-form', { titulo: `Editar ${cargo.nome}`, cargo, edital: cargo.edital, valores: {}, erros: {} });
+  });
+
+  fastify.post('/cargos/:id', { preHandler: csrfGuard }, async (request, reply) => {
+    const cargo = await prisma.cargo.findUnique({ where: { id: Number(request.params.id) }, include: { edital: true } });
+    if (!cargo) { reply.code(404); return reply.render('nao-encontrado', { titulo: 'Cargo não encontrado' }); }
+    const parsed = cargoSchema.safeParse(request.body || {});
+    if (!parsed.success) {
+      reply.code(400);
+      return reply.render('admin-cargo-form', { titulo: `Editar ${cargo.nome}`, cargo, edital: cargo.edital, valores: request.body, erros: errosZod(parsed) });
+    }
+    const d = parsed.data;
+    await prisma.cargo.update({ where: { id: cargo.id }, data: { nome: d.nome, descricao: d.descricao || null, qtdVagas: d.qtdVagas, requisitos: d.requisitos || null, salario: d.salario, cargaHoraria: d.cargaHoraria || null } });
+    await registrarAuditoria({ ator: 'admin', atorId: request.sessao.id, acao: 'cargo.atualizado', entidade: 'edital', entidadeId: cargo.editalId, detalhes: { cargo: d.nome }, ip: request.ip });
+    reply.flash('sucesso', 'Cargo atualizado.');
+    return reply.redirect(`/admin/editais/${cargo.editalId}`);
+  });
+
+  // PDF do edital — upload (multipart) e remoção
+  fastify.post('/editais/:id/edital-pdf', async (request, reply) => {
+    const id = Number(request.params.id);
+    const edital = await prisma.edital.findUnique({ where: { id } });
+    if (!edital) { reply.code(404); return reply.render('nao-encontrado', { titulo: 'Edital não encontrado' }); }
+    const { fields, files } = await lerMultipart(request);
+    if (!validarCsrf(request, fields._csrf)) { reply.code(403); return reply.render('erro', { titulo: 'Erro de validação', mensagem: 'Requisição inválida (CSRF).', voltarUrl: `/admin/editais/${id}` }); }
+    const arquivo = files.edital;
+    if (!arquivo || arquivo.mimetype !== 'application/pdf') {
+      reply.flash('erro', 'Envie o edital em PDF.');
+      return reply.redirect(`/admin/editais/${id}`);
+    }
+    if (arquivo.size > config.maxUploadBytes) {
+      reply.flash('erro', 'O PDF do edital excede 8 MB.');
+      return reply.redirect(`/admin/editais/${id}`);
+    }
+    const nome = await salvarArquivo(arquivo.buffer, arquivo.mimetype);
+    const anterior = edital.editalArquivoPath;
+    await prisma.edital.update({ where: { id }, data: { editalArquivoPath: nome, editalNomeOriginal: arquivo.filename, editalMime: arquivo.mimetype } });
+    if (anterior) await removerArquivo(anterior).catch(() => {});
+    await registrarAuditoria({ ator: 'admin', atorId: request.sessao.id, acao: 'edital.pdf_enviado', entidade: 'edital', entidadeId: id, ip: request.ip });
+    reply.flash('sucesso', 'PDF do edital enviado. Já aparece em destaque para os candidatos.');
+    return reply.redirect(`/admin/editais/${id}`);
+  });
+
+  fastify.post('/editais/:id/edital-pdf/remover', { preHandler: csrfGuard }, async (request, reply) => {
+    const id = Number(request.params.id);
+    const edital = await prisma.edital.findUnique({ where: { id } });
+    if (!edital) { reply.code(404); return reply.render('nao-encontrado', { titulo: 'Edital não encontrado' }); }
+    if (edital.editalArquivoPath) await removerArquivo(edital.editalArquivoPath).catch(() => {});
+    await prisma.edital.update({ where: { id }, data: { editalArquivoPath: null, editalNomeOriginal: null, editalMime: null } });
+    await registrarAuditoria({ ator: 'admin', atorId: request.sessao.id, acao: 'edital.pdf_removido', entidade: 'edital', entidadeId: id, ip: request.ip });
+    reply.flash('sucesso', 'PDF do edital removido.');
+    return reply.redirect(`/admin/editais/${id}`);
   });
 
   // Publicar

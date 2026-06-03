@@ -13,9 +13,17 @@
     <dt>Período de inscrição</dt><dd><%= fmt.fmtData(edital.dataAberturaInscricao) %> a <%= fmt.fmtData(edital.dataEncerramentoInscricao) %></dd>
   </dl>
   <% if (edital.descricao) { %><p style="white-space:pre-wrap"><%= edital.descricao %></p><% } %>
+  <% if (edital.editalArquivoPath) { %>
+    <div class="aviso-box" style="margin:12px 0">
+      📄 <strong>Leia o edital antes de se inscrever.</strong> Ele tem todas as regras, prazos e exigências do processo.
+    </div>
+  <% } %>
   <div class="acoes">
+    <% if (edital.editalArquivoPath) { %>
+      <a class="btn" href="/editais/<%= edital.id %>/edital" target="_blank" rel="noopener">📄 Baixar edital (PDF)</a>
+    <% } %>
     <% if (aberto) { %>
-      <a class="btn" href="/editais/<%= edital.id %>/inscrever">Inscrever-se</a>
+      <a class="btn <%= edital.editalArquivoPath ? 'secundario' : '' %>" href="/editais/<%= edital.id %>/inscrever">Inscrever-se</a>
     <% } %>
     <a class="btn secundario" href="/editais/<%= edital.id %>/inscritos">Lista de inscritos</a>
   </div>

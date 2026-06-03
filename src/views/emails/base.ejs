@@ -5,12 +5,12 @@
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:24px 0;">
     <tr><td align="center">
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;">
-        <tr><td style="background:#0e0e29;padding:20px 28px;color:#ffffff;">
+        <tr><td style="background:#5b34c4;background:linear-gradient(135deg,#5b34c4 0%,#8758ff 100%);padding:20px 28px;color:#ffffff;">
           <strong style="font-size:16px;"><%= orgao.nome %> — <%= orgao.uf %></strong><br>
           <span style="font-size:13px;opacity:.85;">Sistema de Processos Seletivos</span>
         </td></tr>
         <tr><td style="padding:28px;">
-          <h1 style="font-size:19px;margin:0 0 16px;color:#0e0e29;"><%= titulo %></h1>
+          <h1 style="font-size:19px;margin:0 0 16px;color:#5b34c4;"><%= titulo %></h1>
           <% (paragrafos || []).forEach(function(p){ %>
             <p style="font-size:14px;line-height:1.6;margin:0 0 14px;"><%- p %></p>
           <% }); %>

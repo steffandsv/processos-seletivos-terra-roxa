@@ -66,6 +66,29 @@ export default async function rotasPublicas(fastify) {
     });
   });
 
+  // Download do PDF oficial do edital (público quando publicado/encerrado;
+  // admin pode baixar mesmo em rascunho para conferência)
+  fastify.get('/editais/:id/edital', async (request, reply) => {
+    const id = Number(request.params.id);
+    const edital = await prisma.edital.findUnique({ where: { id } });
+    const ehAdmin = request.sessao?.tipo === 'admin';
+    const visivel = edital && (['publicado', 'encerrado'].includes(edital.status) || ehAdmin);
+    if (!edital || !edital.editalArquivoPath || !visivel) {
+      reply.code(404);
+      return reply.render('nao-encontrado', { titulo: 'Edital não encontrado' });
+    }
+    let conteudo;
+    try {
+      conteudo = await lerArquivo(edital.editalArquivoPath);
+    } catch {
+      reply.code(404);
+      return reply.render('nao-encontrado', { titulo: 'Arquivo indisponível' });
+    }
+    reply.header('Content-Type', edital.editalMime || 'application/pdf');
+    reply.header('Content-Disposition', `inline; filename="${(edital.editalNomeOriginal || `edital-${edital.numero}.pdf`).replace(/"/g, '')}"`);
+    return reply.send(conteudo);
+  });
+
   // Download público de uma publicação oficial
   fastify.get('/publicacoes/:id/arquivo', async (request, reply) => {
     const id = Number(request.params.id);

@@ -1,16 +1,37 @@
 <%- include('partials/head') %>
-<% var v = (typeof valores !== 'undefined' && valores) ? valores : {}; %>
+<% var v = (typeof valores !== 'undefined' && valores) ? valores : {}; var temEdital = !!edital.editalArquivoPath; %>
 <p class="meta"><a href="/editais/<%= edital.id %>">&larr; <%= edital.numero %></a></p>
 <h1>Inscrição — <%= edital.titulo %></h1>
 
 <% if (cargosDisponiveis.length === 0) { %>
   <div class="card vazio">Não há cargos disponíveis para nova inscrição neste edital.</div>
 <% } else { %>
-<form action="/editais/<%= edital.id %>/inscrever" method="post" enctype="multipart/form-data" novalidate>
+
+<div class="card" style="background:var(--lavanda);border-color:var(--borda-forte)">
+  <h2 style="margin-top:0">Como se inscrever</h2>
+  <ol style="margin:0;padding-left:20px;line-height:1.9">
+    <% if (temEdital) { %><li><strong>Baixe e leia o edital</strong> (botão roxo abaixo).</li><% } %>
+    <li><strong>Escolha a vaga</strong> que você quer.</li>
+    <% if (flags.exige_documento_foto) { %><li><strong>Anexe um documento com foto</strong> (RG, CNH etc.).</li><% } %>
+    <li><strong>Marque que leu e aceitou</strong> o edital e clique em <strong>Enviar inscrição</strong>.</li>
+  </ol>
+</div>
+
+<form action="/editais/<%= edital.id %>/inscrever" method="post" enctype="multipart/form-data" novalidate data-form-inscricao <%= temEdital ? 'data-tem-edital' : '' %>>
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
+  <% if (temEdital) { %>
+    <div class="card">
+      <h2>1. Edital do concurso</h2>
+      <p>Antes de continuar, <strong>baixe e leia o edital</strong>. Ele tem todas as regras. Você precisa baixá-lo para liberar o aceite no final.</p>
+      <div class="acoes" style="margin-top:6px">
+        <a class="btn" id="baixar-edital" href="/editais/<%= edital.id %>/edital" target="_blank" rel="noopener">📄 Baixar edital (PDF)</a>
+      </div>
+    </div>
+  <% } %>
+
   <div class="card">
-    <h2>Escolha da vaga</h2>
+    <h2><%= temEdital ? '2.' : '1.' %> Escolha a vaga</h2>
     <label for="cargoId">Cargo<% if (flags.permite_multiplas_vagas) { %> <span class="opcional">(você pode se inscrever em mais de um cargo)</span><% } %></label>
     <select id="cargoId" name="cargoId" required <%= erros.cargoId ? 'aria-invalid="true"' : '' %>>
       <option value="">— selecione —</option>
@@ -23,8 +44,8 @@
 
   <% if (flags.exige_documento_foto) { %>
     <div class="card">
-      <h2>Documento com foto</h2>
-      <p class="dica">Aceitos: RG, CNH, CTPS digital, Passaporte ou RNM. Formatos PDF, JPG ou PNG, até 8 MB. Obrigatório.</p>
+      <h2><%= temEdital ? '3.' : '2.' %> Documento com foto</h2>
+      <p class="dica">Aceitos: RG, CNH, CTPS digital, Passaporte ou RNM. Tire uma foto bem legível ou use o PDF. Formatos PDF, JPG ou PNG, até 8 MB. <strong>Obrigatório.</strong></p>
       <label for="documento">Arquivo do documento</label>
       <input id="documento" name="documento" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required <%= erros.documento ? 'aria-invalid="true"' : '' %>>
       <% if (erros.documento) { %><p class="erro-campo"><%= erros.documento %></p><% } %>
@@ -34,7 +55,7 @@
   <% if (flags.fase_atendimento_especial) { %>
     <fieldset>
       <legend>Atendimento especial na prova <span class="opcional">(opcional)</span></legend>
-      <p class="dica">Preencha apenas se necessitar de condição especial para realizar a prova.</p>
+      <p class="dica">Preencha apenas se precisar de uma condição especial para fazer a prova.</p>
       <label for="atendimento_tipo">Tipo de necessidade</label>
       <input id="atendimento_tipo" name="atendimento_tipo" value="<%= v.atendimento_tipo || '' %>" placeholder="Ex.: prova ampliada, tempo adicional, sala acessível">
       <label for="atendimento_descricao">Detalhes <span class="opcional">(opcional)</span></label>
@@ -46,17 +67,17 @@
   <% } %>
 
   <div class="card">
-    <h2>Termo de aceite</h2>
+    <h2>Confirme e envie</h2>
     <div class="check-linha">
       <input type="checkbox" id="aceiteTermos" name="aceiteTermos" value="on" <%= v.aceiteTermos === 'on' ? 'checked' : '' %> required>
-      <label for="aceiteTermos">Li o edital integralmente e estou ciente de que <strong>não posso trocar a vaga depois</strong> de enviar esta inscrição.</label>
+      <label for="aceiteTermos"><strong>LI E ACEITO O EDITAL</strong><% if (temEdital) { %> que baixei acima<% } %>. Estou ciente das regras e de que <strong>não posso trocar a vaga</strong> depois de enviar esta inscrição.</label>
     </div>
+    <p class="dica" id="dica-aceite"></p>
     <% if (erros.aceiteTermos) { %><p class="erro-campo"><%= erros.aceiteTermos %></p><% } %>
-  </div>
-
-  <div class="acoes">
-    <button class="btn" type="submit">Enviar inscrição</button>
-    <a class="btn secundario" href="/editais/<%= edital.id %>">Cancelar</a>
+    <div class="acoes">
+      <button class="btn" type="submit" id="btn-enviar">Enviar inscrição</button>
+      <a class="btn secundario" href="/editais/<%= edital.id %>">Cancelar</a>
+    </div>
   </div>
 </form>
 <% } %>

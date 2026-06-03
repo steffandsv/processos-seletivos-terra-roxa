@@ -1,0 +1,43 @@
+<%- include('partials/head') %>
+<%
+  var v = valores || {};
+  function val(campo, base){ return v[campo] !== undefined ? v[campo] : (base != null ? base : ''); }
+  var salarioFmt = v.salario !== undefined ? v.salario : (cargo.salario != null ? Number(cargo.salario).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '');
+%>
+<p class="meta"><a href="/admin/editais/<%= edital.id %>">&larr; <%= edital.numero %></a></p>
+<h1>Editar cargo</h1>
+<form action="/admin/cargos/<%= cargo.id %>" method="post" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="card">
+    <div class="grid cols-2">
+      <div>
+        <label for="nome">Nome do cargo</label>
+        <input id="nome" name="nome" required value="<%= val('nome', cargo.nome) %>" <%= erros.nome ? 'aria-invalid="true"' : '' %>>
+        <% if (erros.nome) { %><p class="erro-campo"><%= erros.nome %></p><% } %>
+      </div>
+      <div>
+        <label for="qtdVagas">Quantidade de vagas</label>
+        <input id="qtdVagas" name="qtdVagas" type="number" min="0" value="<%= val('qtdVagas', cargo.qtdVagas) %>">
+      </div>
+    </div>
+    <div class="grid cols-2">
+      <div>
+        <label for="salario">Salário <span class="opcional">(opcional)</span></label>
+        <input id="salario" name="salario" inputmode="decimal" data-moeda value="<%= salarioFmt %>" placeholder="R$ 0,00">
+      </div>
+      <div>
+        <label for="cargaHoraria">Carga horária <span class="opcional">(opcional)</span></label>
+        <input id="cargaHoraria" name="cargaHoraria" value="<%= val('cargaHoraria', cargo.cargaHoraria) %>" placeholder="Ex.: 40h semanais">
+      </div>
+    </div>
+    <label for="descricao">Descrição <span class="opcional">(opcional)</span></label>
+    <input id="descricao" name="descricao" value="<%= val('descricao', cargo.descricao) %>">
+    <label for="requisitos">Requisitos <span class="opcional">(opcional)</span></label>
+    <input id="requisitos" name="requisitos" value="<%= val('requisitos', cargo.requisitos) %>">
+  </div>
+  <div class="acoes">
+    <button class="btn" type="submit">Salvar cargo</button>
+    <a class="btn secundario" href="/admin/editais/<%= edital.id %>">Cancelar</a>
+  </div>
+</form>
+<%- include('partials/footer') %>

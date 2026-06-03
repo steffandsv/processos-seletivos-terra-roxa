@@ -46,6 +46,17 @@ export const config = {
   cookieSecure: bool('COOKIE_SECURE', isProd),
 
   uploadDir: path.resolve(opt('UPLOAD_DIR', './data/uploads')),
+  // Armazenamento de arquivos: 'local' (volume) ou 'webdav' (Nextcloud).
+  // O conteúdo é sempre cifrado ANTES de ir para o storage.
+  storage: {
+    driver: opt('STORAGE_DRIVER', 'local').toLowerCase(),
+    webdav: {
+      baseUrl: opt('WEBDAV_BASE_URL', '').replace(/\/$/, ''), // ex.: https://nuvem/remote.php/dav/files/USUARIO
+      user: opt('WEBDAV_USER', ''),
+      pass: opt('WEBDAV_PASS', ''),
+      root: opt('WEBDAV_ROOT', 'processos-seletivos').replace(/^\/+|\/+$/g, ''), // subpasta
+    },
+  },
   maxUploadBytes: 8 * 1024 * 1024, // 8 MB (premissa 9)
   // MIME aceitos para documento com foto e anexos de candidato
   mimesDocumento: ['application/pdf', 'image/jpeg', 'image/png'],

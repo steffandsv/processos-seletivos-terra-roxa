@@ -23,6 +23,35 @@
   </div>
 </div>
 
+<div class="card">
+  <h2>📄 Edital (PDF)</h2>
+  <% if (edital.editalArquivoPath) { %>
+    <p>Edital atual: <strong><%= edital.editalNomeOriginal || 'edital.pdf' %></strong> — <a href="/editais/<%= edital.id %>/edital" target="_blank" rel="noopener">visualizar</a>.</p>
+    <p class="muted">Os candidatos veem este PDF em destaque e precisam baixá-lo antes de aceitar a vaga.</p>
+    <form action="/admin/editais/<%= edital.id %>/edital-pdf" method="post" enctype="multipart/form-data" style="margin-top:10px">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label for="edital">Substituir por outro PDF</label>
+      <input id="edital" name="edital" type="file" accept="application/pdf,.pdf">
+      <div class="acoes">
+        <button class="btn pequeno" type="submit">Substituir PDF</button>
+        <span></span>
+      </div>
+    </form>
+    <form action="/admin/editais/<%= edital.id %>/edital-pdf/remover" method="post" onsubmit="return confirm('Remover o PDF do edital?');" style="margin-top:6px">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button class="btn perigo pequeno" type="submit">Remover PDF</button>
+    </form>
+  <% } else { %>
+    <div class="flash flash-aviso" style="margin-bottom:14px">Nenhum PDF de edital enviado. <strong>Envie o edital antes de publicar</strong> — o candidato precisa baixá-lo para se inscrever.</div>
+    <form action="/admin/editais/<%= edital.id %>/edital-pdf" method="post" enctype="multipart/form-data">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label for="edital">Arquivo do edital (PDF, até 8 MB)</label>
+      <input id="edital" name="edital" type="file" accept="application/pdf,.pdf" required>
+      <div class="acoes"><button class="btn" type="submit">Enviar edital</button></div>
+    </form>
+  <% } %>
+</div>
+
 <div class="grid cols-2">
   <div class="card">
     <h2>Atalhos</h2>
@@ -70,12 +99,13 @@
               <td><%= c.cargaHoraria || '—' %></td>
               <td><%= c._count.inscricoes %></td>
               <td><%= c.requisitos || '—' %></td>
-              <td>
+              <td style="white-space:nowrap">
+                <a class="btn secundario pequeno" href="/admin/cargos/<%= c.id %>/editar">Editar</a>
                 <% if (c._count.inscricoes === 0) { %>
                   <form action="/admin/cargos/<%= c.id %>/excluir" method="post" onsubmit="return confirm('Excluir este cargo?');" style="display:inline">
                     <input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn perigo pequeno">Excluir</button>
                   </form>
-                <% } else { %><span class="muted">—</span><% } %>
+                <% } %>
               </td>
             </tr>
           <% }); %>
@@ -92,7 +122,7 @@
       <div><label for="qtdVagas">Quantidade de vagas</label><input id="qtdVagas" name="qtdVagas" type="number" min="0" value="1"></div>
     </div>
     <div class="grid cols-2">
-      <div><label for="salario">Salário <span class="opcional">(opcional)</span></label><input id="salario" name="salario" inputmode="decimal" placeholder="Ex.: 1.412,00"></div>
+      <div><label for="salario">Salário <span class="opcional">(opcional)</span></label><input id="salario" name="salario" inputmode="decimal" data-moeda placeholder="R$ 0,00"></div>
       <div><label for="cargaHoraria">Carga horária <span class="opcional">(opcional)</span></label><input id="cargaHoraria" name="cargaHoraria" placeholder="Ex.: 40h semanais"></div>
     </div>
     <label for="descricao">Descrição <span class="opcional">(opcional)</span></label>

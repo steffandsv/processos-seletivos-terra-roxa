@@ -111,6 +111,9 @@ model Edital {
   numero                  String       @unique
   descricao               String?
   configFases             Json         @map("config_fases") // ver §2
+  editalArquivoPath       String?      @map("edital_arquivo_path") // PDF oficial do edital (cifrado)
+  editalNomeOriginal      String?      @map("edital_nome_original")
+  editalMime              String?      @map("edital_mime")
   dataAberturaInscricao   DateTime?    @map("data_abertura_inscricao")
   dataEncerramentoInscricao DateTime?  @map("data_encerramento_inscricao")
   status                  StatusEdital @default(rascunho)
