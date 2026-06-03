@@ -54,7 +54,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           port: 2222
           username: root
-          key: ${{ secrets.VPS_SSH_KEY }}
+          password: ${{ secrets.VPS_SSH_PASSWORD }}
           # Encaminha os segredos para o script remoto (viram variáveis de ambiente lá)
           envs: REPO_URL,DATABASE_URL,SESSION_SECRET,DOC_ENCRYPTION_KEY,POSTGRES_NETWORK,MAIL_FROM,DPO_CONTATO,STORAGE_DRIVER,WEBDAV_BASE_URL,WEBDAV_USER,WEBDAV_PASS,WEBDAV_ROOT
           script_stop: true

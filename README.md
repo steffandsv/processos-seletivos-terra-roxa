@@ -103,8 +103,11 @@ CREATE DATABASE processos_seletivos OWNER processos_app;
    rede Docker compartilhada). Defina `DOMAIN` e `POSTGRES_NETWORK` (nome da rede do Postgres).
 2. `docker compose up -d --build`. O `docker-entrypoint.sh` roda `prisma migrate deploy` e sobe o app.
 3. CI/CD: push em `main` → GitHub Actions roda **lint + testes** e faz **deploy por SSH**
-   (`git pull && docker compose build && docker compose up -d`). Secrets necessários:
-   `SSH_HOST`, `SSH_USER`, `SSH_KEY`, `SSH_PORT` (opcional), `APP_DIR`.
+   (porta **2222**, usuário **root**, autenticação por **senha**). O workflow grava o `.env`
+   a partir dos secrets e roda `docker compose build && docker compose up -d`. Secrets:
+   `VPS_HOST`, `VPS_SSH_PASSWORD`, `DATABASE_URL`, `POSTGRES_NETWORK` (obrigatórios);
+   `SESSION_SECRET`, `DOC_ENCRYPTION_KEY` (gerados); `MAIL_FROM`, `DPO_CONTATO`,
+   `STORAGE_DRIVER`, `WEBDAV_*` (opcionais).
 
 Healthcheck: `GET /health` (app) e `GET /health/db` (conexão com o banco).
 
