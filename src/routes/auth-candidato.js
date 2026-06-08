@@ -3,7 +3,7 @@
 import prisma from '../db.js';
 import { csrfGuard, setSessao, limparSessao, requireCandidato } from '../plugins/auth.js';
 import { hashSenha, authProvider } from '../lib/seguranca.js';
-import { tokenAleatorio, hashToken } from '../lib/crypto.js';
+import { tokenAleatorio, hashToken, gerarCodigoNumerico } from '../lib/crypto.js';
 import { registrarAuditoria } from '../lib/audit.js';
 import { enviarVerificacaoEmail, enviarResetSenha } from '../lib/email.js';
 import config from '../config.js';
@@ -173,46 +173,47 @@ export default async function rotasAuthCandidato(fastify) {
       reply.code(400);
       return reply.render('esqueci-senha', { titulo: 'Recuperar senha', valores: request.body, erros: errosZod(parsed) });
     }
-    const candidato = await prisma.candidato.findUnique({ where: { email: parsed.data.email } });
+    const email = parsed.data.email;
+    const candidato = await prisma.candidato.findUnique({ where: { email } });
     if (candidato) {
-      const token = tokenAleatorio(32);
+      const codigo = gerarCodigoNumerico(6);
       await prisma.candidato.update({
         where: { id: candidato.id },
-        data: { resetTokenHash: hashToken(token), resetTokenExpiraEm: new Date(Date.now() + 60 * 60 * 1000) },
+        data: { resetTokenHash: hashToken(codigo), resetTokenExpiraEm: new Date(Date.now() + 30 * 60 * 1000) },
       });
-      await enviarResetSenha({ candidato, url: `${config.baseUrl}/redefinir-senha?token=${token}` });
+      await enviarResetSenha({ candidato, codigo, url: `${config.baseUrl}/redefinir-senha?email=${encodeURIComponent(email)}` });
       await registrarAuditoria({ ator: 'candidato', atorId: candidato.id, acao: 'candidato.reset_solicitado', ip: request.ip });
     }
     // Mensagem genérica — não revela se o e-mail existe (anti-enumeração).
-    reply.flash('info', 'Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha.');
-    return reply.redirect('/login');
+    reply.flash('info', 'Se o e-mail estiver cadastrado, enviamos um código de 6 dígitos. Confira sua caixa de entrada e também o spam/lixo eletrônico.');
+    return reply.redirect(`/redefinir-senha?email=${encodeURIComponent(email)}`);
   });
 
   fastify.get('/redefinir-senha', async (request, reply) => {
-    const token = String(request.query.token || '');
-    if (!token) { reply.flash('erro', 'Link inválido.'); return reply.redirect('/esqueci-senha'); }
-    return reply.render('redefinir-senha', { titulo: 'Redefinir senha', token, erros: {} });
+    const email = String(request.query.email || '');
+    return reply.render('redefinir-senha', { titulo: 'Redefinir senha', valores: { email }, erros: {} });
   });
 
-  fastify.post('/redefinir-senha', { preHandler: csrfGuard }, async (request, reply) => {
+  fastify.post('/redefinir-senha', { preHandler: csrfGuard, ...RL_LOGIN }, async (request, reply) => {
     const parsed = resetSenhaSchema.safeParse(request.body || {});
     if (!parsed.success) {
       reply.code(400);
-      return reply.render('redefinir-senha', { titulo: 'Redefinir senha', token: request.body?.token || '', erros: errosZod(parsed) });
+      return reply.render('redefinir-senha', { titulo: 'Redefinir senha', valores: request.body || {}, erros: errosZod(parsed) });
     }
     const candidato = await prisma.candidato.findFirst({
-      where: { resetTokenHash: hashToken(parsed.data.token), resetTokenExpiraEm: { gt: new Date() } },
+      where: { email: parsed.data.email, resetTokenHash: hashToken(parsed.data.codigo), resetTokenExpiraEm: { gt: new Date() } },
     });
     if (!candidato) {
-      reply.flash('erro', 'Link expirado ou inválido. Solicite novamente.');
-      return reply.redirect('/esqueci-senha');
+      await registrarAuditoria({ ator: 'sistema', acao: 'candidato.reset_codigo_invalido', detalhes: { email: parsed.data.email }, ip: request.ip });
+      reply.code(400);
+      return reply.render('redefinir-senha', { titulo: 'Redefinir senha', valores: { email: parsed.data.email }, erros: { codigo: 'Código inválido ou expirado. Solicite um novo.' } });
     }
     await prisma.candidato.update({
       where: { id: candidato.id },
       data: { senhaHash: await hashSenha(parsed.data.novaSenha), resetTokenHash: null, resetTokenExpiraEm: null },
     });
     await registrarAuditoria({ ator: 'candidato', atorId: candidato.id, acao: 'candidato.senha_redefinida', ip: request.ip });
-    reply.flash('sucesso', 'Senha redefinida. Faça login com a nova senha.');
+    reply.flash('sucesso', 'Senha redefinida com sucesso. Faça login com a nova senha.');
     return reply.redirect('/login');
   });
 }

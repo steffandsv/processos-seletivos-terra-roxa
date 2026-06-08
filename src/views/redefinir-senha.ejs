@@ -1,17 +1,32 @@
 <%- include('partials/head') %>
+<% var v = valores || {}; %>
 <div class="container-estreito">
   <div class="card">
     <h1>Redefinir senha</h1>
+    <p class="muted">Enviamos um <strong>código de 6 dígitos</strong> para o seu e-mail. Digite-o abaixo junto com a nova senha.</p>
+    <div class="aviso-box" style="margin-bottom:14px">
+      📩 Não recebeu o código? Confira a caixa de <strong>spam / lixo eletrônico</strong>. O código vale por <strong>30 minutos</strong>.
+      Se precisar, <a href="/esqueci-senha">peça um novo código</a>.
+    </div>
     <form action="/redefinir-senha" method="post" novalidate>
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <input type="hidden" name="token" value="<%= token %>">
+      <label for="email">E-mail</label>
+      <input id="email" name="email" type="email" required value="<%= v.email || '' %>" <%= erros.email ? 'aria-invalid="true"' : '' %>>
+      <% if (erros.email) { %><p class="erro-campo"><%= erros.email %></p><% } %>
+
+      <label for="codigo">Código de 6 dígitos</label>
+      <input id="codigo" name="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required style="font-size:1.5rem;letter-spacing:6px;text-align:center;max-width:220px" <%= erros.codigo ? 'aria-invalid="true"' : '' %>>
+      <% if (erros.codigo) { %><p class="erro-campo"><%= erros.codigo %></p><% } %>
+
       <label for="novaSenha">Nova senha</label>
       <input id="novaSenha" name="novaSenha" type="password" required minlength="8">
       <p class="dica">Mínimo 8 caracteres, com letras e números.</p>
       <% if (erros.novaSenha) { %><p class="erro-campo"><%= erros.novaSenha %></p><% } %>
+
       <label for="confirmaSenha">Confirmar nova senha</label>
       <input id="confirmaSenha" name="confirmaSenha" type="password" required>
       <% if (erros.confirmaSenha) { %><p class="erro-campo"><%= erros.confirmaSenha %></p><% } %>
+
       <div class="acoes"><button type="submit" class="btn">Redefinir senha</button></div>
     </form>
   </div>

@@ -68,10 +68,10 @@ export default async function adminConfiguracoes(fastify) {
       return reply.redirect('/admin/configuracoes');
     }
     resetTransporter(); // garante uso da config recém-salva
-    const { status } = await enviarEmailTeste(parsed.data.destino);
-    await registrarAuditoria({ ator: 'admin', atorId: request.sessao.id, acao: 'configuracao.smtp_teste', detalhes: { destino: parsed.data.destino, status }, ip: request.ip });
-    if (status === 'enviado') reply.flash('sucesso', `E-mail de teste enviado para ${parsed.data.destino}. Verifique a caixa de entrada (e o spam).`);
-    else reply.flash('erro', 'Falha ao enviar o e-mail de teste. Confira host, porta, usuário/senha e SSL/TLS.');
+    const { status, erro } = await enviarEmailTeste(parsed.data.destino);
+    await registrarAuditoria({ ator: 'admin', atorId: request.sessao.id, acao: 'configuracao.smtp_teste', detalhes: { destino: parsed.data.destino, status, erro }, ip: request.ip });
+    if (status === 'enviado') reply.flash('sucesso', `E-mail de teste enviado para ${parsed.data.destino}. Verifique a caixa de entrada e também o spam/lixo eletrônico.`);
+    else reply.flash('erro', `Falha ao enviar: ${erro || 'erro desconhecido'}. Confira host, porta, usuário/senha e SSL/TLS. (Se trocou de ambiente, recadastre a senha do SMTP aqui.)`);
     return reply.redirect('/admin/configuracoes');
   });
 }

@@ -28,6 +28,7 @@ function decifrarSenhaSmtp(cifrada) {
   try {
     return decryptBuffer(Buffer.from(cifrada, 'base64')).toString('utf8');
   } catch {
+    console.error('[email] NÃO foi possível decifrar a senha do SMTP — a DOC_ENCRYPTION_KEY atual difere da usada ao salvar. Recadastre a senha em /admin/configuracoes neste ambiente.');
     return undefined;
   }
 }
@@ -135,7 +136,7 @@ export async function enviarEmail({ to, subject, html, template = 'generico', at
   if (status === 'falha') {
     console.error(`[email] FALHA ao enviar "${subject}" para ${to}: ${erro}`);
   }
-  return { status };
+  return { status, erro };
 }
 
 // ---------------------------------------------------------------------------
@@ -155,17 +156,19 @@ export async function enviarVerificacaoEmail({ candidato, url }) {
   return enviarEmail({ to: candidato.email, subject: 'Confirme seu e-mail — Processos Seletivos', html, template: 'verificacao_email' });
 }
 
-export async function enviarResetSenha({ candidato, url }) {
+export async function enviarResetSenha({ candidato, codigo, url }) {
   const html = await renderBase({
-    titulo: 'Redefinição de senha',
+    titulo: 'Código de recuperação de senha',
     paragrafos: [
       `Olá, <strong>${candidato.nomeCompleto}</strong>.`,
-      'Recebemos uma solicitação para redefinir sua senha. Se não foi você, ignore este e-mail.',
-      'Este link expira em 1 hora.',
+      'Recebemos uma solicitação para redefinir sua senha. Use o código abaixo na página de recuperação:',
+      `<div style="font-size:34px;font-weight:bold;letter-spacing:8px;color:#5b34c4;background:#efe9ff;border-radius:10px;padding:16px 0;text-align:center;margin:4px 0;">${codigo}</div>`,
+      'Este código expira em <strong>30 minutos</strong>. Se não foi você quem pediu, ignore este e-mail.',
+      '<span style="color:#6e6e6e;font-size:12px;">Não recebeu? Confira a caixa de <strong>spam/lixo eletrônico</strong> e marque a mensagem como “não é spam”.</span>',
     ],
-    botao: { texto: 'Redefinir senha', url },
+    botao: url ? { texto: 'Abrir página de recuperação', url } : null,
   });
-  return enviarEmail({ to: candidato.email, subject: 'Redefinição de senha — Processos Seletivos', html, template: 'reset_senha' });
+  return enviarEmail({ to: candidato.email, subject: `${codigo} é o seu código de recuperação — Processos Seletivos`, html, template: 'reset_senha' });
 }
 
 export async function enviarConfirmacaoInscricao({ inscricao, candidato, edital, cargo, espelhoPdf }) {

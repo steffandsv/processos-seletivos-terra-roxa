@@ -49,6 +49,13 @@ export function nomeArquivoOpaco(ext = 'bin') {
   return `${crypto.randomBytes(16).toString('hex')}.${ext}.enc`;
 }
 
+/** Código numérico de n dígitos (ex.: "048213") para recuperação de senha. */
+export function gerarCodigoNumerico(n = 6) {
+  let s = '';
+  for (let i = 0; i < n; i++) s += String(crypto.randomInt(0, 10));
+  return s;
+}
+
 /** Protocolo curto legível, ex.: "REC-2026-AB12CD". */
 export function gerarProtocolo(prefixo, ano) {
   const sufixo = crypto.randomBytes(4).toString('hex').toUpperCase();

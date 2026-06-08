@@ -64,7 +64,8 @@ export const esqueciSenhaSchema = z.object({
 
 export const resetSenhaSchema = z
   .object({
-    token: z.string().min(10),
+    email: z.string().trim().toLowerCase().email('E-mail inválido'),
+    codigo: z.string().trim().regex(/^\d{6}$/, 'Informe o código de 6 dígitos que enviamos por e-mail'),
     novaSenha: senhaSchema,
     confirmaSenha: z.string(),
   })

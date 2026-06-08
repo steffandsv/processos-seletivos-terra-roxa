@@ -2,7 +2,8 @@
 <div class="container-estreito">
   <div class="card">
     <h1>Recuperar senha</h1>
-    <p class="muted">Informe seu e-mail. Se houver uma conta, enviaremos um link para redefinir a senha.</p>
+    <p class="muted">Informe seu e-mail. Se houver uma conta, enviaremos um <strong>código de 6 dígitos</strong> para você redefinir a senha.</p>
+    <div class="aviso-box" style="margin-bottom:14px">📩 O e-mail pode cair no <strong>spam / lixo eletrônico</strong> — confira lá também.</div>
     <form action="/esqueci-senha" method="post" novalidate>
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <label for="email">E-mail</label>
