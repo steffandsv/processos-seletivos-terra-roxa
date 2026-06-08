@@ -14,6 +14,9 @@ RUN npx prisma generate
 
 FROM node:22-alpine AS runtime
 ENV NODE_ENV=production
+# Fuso horário oficial (America/Sao_Paulo, GMT-3)
+ENV TZ=America/Sao_Paulo
+RUN apk add --no-cache tzdata
 WORKDIR /app
 # Dependências de produção apenas
 COPY package.json package-lock.json ./

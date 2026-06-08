@@ -28,6 +28,22 @@ export function fmtMoeda(valor) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+/** Formata uma data para o input datetime-local ("YYYY-MM-DDTHH:mm") em horário de Brasília. */
+export function fmtInputDateTime(d) {
+  if (!d) return '';
+  try {
+    const fmt = new Intl.DateTimeFormat('en-CA', {
+      timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    });
+    const p = Object.fromEntries(fmt.formatToParts(new Date(d)).map((x) => [x.type, x.value]));
+    const hora = p.hour === '24' ? '00' : p.hour; // en-CA pode emitir 24h
+    return `${p.year}-${p.month}-${p.day}T${hora}:${p.minute}`;
+  } catch {
+    return '';
+  }
+}
+
 export function fmtTamanho(bytes) {
   if (!bytes && bytes !== 0) return '—';
   if (bytes < 1024) return `${bytes} B`;

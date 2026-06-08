@@ -57,10 +57,18 @@ export function inscricoesAbertas(edital, agora = new Date()) {
   return true;
 }
 
-/** Converte 'YYYY-MM-DD' ou 'YYYY-MM-DDTHH:mm' (input HTML) em Date ou null. */
+/**
+ * Converte o valor de um input HTML em Date, interpretando datas SEM fuso como
+ * horário de Brasília (GMT-3 / America/Sao_Paulo). Sem isso, o servidor (UTC)
+ * interpretaria "2026-06-09T00:00" como meia-noite UTC e a data exibida ficaria
+ * um dia "atrás" no fuso de SP. Brasil não usa horário de verão desde 2019 (-03:00).
+ */
 export function parseDataInput(valor) {
   if (!valor || !String(valor).trim()) return null;
-  const d = new Date(valor);
+  let s = String(valor).trim();
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s)) s += ':00-03:00';        // datetime-local
+  else if (/^\d{4}-\d{2}-\d{2}$/.test(s)) s += 'T00:00:00-03:00';         // date
+  const d = new Date(s);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
