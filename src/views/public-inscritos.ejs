@@ -1,14 +1,31 @@
 <%- include('partials/head') %>
+<% var cargoSel = (edital.cargos.find(function(c){ return c.id === filtroCargo; }) || null); %>
 <p class="meta"><a href="/editais/<%= edital.id %>">&larr; <%= edital.numero %></a></p>
-<h1>Inscritos<%= homologacao ? ' homologados' : '' %></h1>
+<h1>Inscritos<%= cargoSel ? (' — ' + cargoSel.nome) : '' %></h1>
 <p class="muted"><%= edital.numero %> — <%= edital.titulo %></p>
 <div class="aviso-box">
   Por proteção de dados (LGPD), esta lista exibe apenas <strong>nome e número de inscrição</strong>.
   Não são divulgados CPF nem qualquer informação de saúde/deficiência.
 </div>
 
+<form method="get" action="/editais/<%= edital.id %>/inscritos" class="card" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+  <div style="flex:1;min-width:200px">
+    <label for="cargo">Ver somente o cargo</label>
+    <select id="cargo" name="cargo" onchange="this.form.submit()">
+      <option value="">Todos os cargos</option>
+      <% edital.cargos.forEach(function(c){ %>
+        <option value="<%= c.id %>" <%= filtroCargo === c.id ? 'selected' : '' %>><%= c.nome %></option>
+      <% }); %>
+    </select>
+  </div>
+  <div class="acoes" style="margin:0">
+    <button class="btn" type="submit">Filtrar</button>
+    <a class="btn secundario" href="/editais/<%= edital.id %>/concorrencia">Ver concorrência</a>
+  </div>
+</form>
+
 <% if (inscritos.length === 0) { %>
-  <div class="card vazio">Nenhum inscrito <%= homologacao ? 'homologado ' : '' %>a exibir.</div>
+  <div class="card vazio">Nenhum inscrito a exibir<%= cargoSel ? ' para este cargo' : '' %>.</div>
 <% } else { %>
   <div class="card">
     <div class="tabela-wrap">
@@ -25,7 +42,7 @@
         </tbody>
       </table>
     </div>
-    <p class="muted" style="margin-top:10px">Total: <%= inscritos.length %></p>
+    <p class="muted" style="margin-top:10px">Total: <%= inscritos.length %><%= cargoSel ? '' : ' (todos os cargos)' %></p>
   </div>
 <% } %>
 <%- include('partials/footer') %>

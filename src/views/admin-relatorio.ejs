@@ -7,12 +7,16 @@
   <h2>Inscrições por cargo</h2>
   <div class="tabela-wrap">
     <table>
-      <thead><tr><th>Cargo</th><th>Vagas</th><th>Total</th><th>Em análise</th><th>Homologadas</th><th>Indeferidas</th></tr></thead>
+      <thead><tr><th>Cargo</th><th>Vagas</th><th>Concorrência</th><th>Total</th><th>Em análise</th><th>Homologadas</th><th>Indeferidas</th></tr></thead>
       <tbody>
-        <% linhas.forEach(function(l){ %>
+        <% linhas.forEach(function(l){
+           var ativas = (l.em_analise || 0) + (l.enviada || 0) + (l.homologada || 0);
+           var conc = l.cargo.qtdVagas > 0 ? (ativas / l.cargo.qtdVagas).toFixed(1).replace('.', ',') + '/vaga' : '—';
+        %>
           <tr>
             <td><%= l.cargo.nome %></td>
             <td><%= l.cargo.qtdVagas %></td>
+            <td><strong><%= conc %></strong></td>
             <td><strong><%= l.total %></strong></td>
             <td><%= (l.em_analise || 0) + (l.enviada || 0) %></td>
             <td><%= l.homologada || 0 %></td>
@@ -20,7 +24,7 @@
           </tr>
         <% }); %>
       </tbody>
-      <tfoot><tr><th>Total geral</th><th></th><th><%= totalGeral %></th><th></th><th></th><th></th></tr></tfoot>
+      <tfoot><tr><th>Total geral</th><th></th><th></th><th><%= totalGeral %></th><th></th><th></th><th></th></tr></tfoot>
     </table>
   </div>
 </div>

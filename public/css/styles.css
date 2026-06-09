@@ -199,6 +199,18 @@ dl.dados dt { color: var(--texto-suave); font-size: .78rem; text-transform: uppe
 dl.dados dd { margin: 0; }
 
 .aviso-box { background: var(--lavanda); border: 1px solid var(--borda-forte); border-radius: var(--raio); padding: 14px 18px; font-size: .9rem; }
+
+/* Concorrência por vaga */
+.conc-lista { display: grid; gap: 12px; }
+.conc-row { display: block; text-decoration: none; color: inherit; background: #fff; border: 1px solid var(--borda); border-radius: var(--raio); padding: 14px 18px; box-shadow: var(--sombra-suave); transition: transform .12s, box-shadow .12s; }
+.conc-row:hover { transform: translateY(-2px); box-shadow: var(--sombra); color: inherit; }
+.conc-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.conc-nome { font-weight: 700; color: var(--navy); }
+.conc-ratio { font-weight: 800; color: var(--roxo-700); white-space: nowrap; font-size: 1.15rem; }
+.conc-ratio small { font-weight: 600; color: var(--texto-suave); font-size: .76rem; }
+.conc-bar { height: 10px; border-radius: 999px; background: #ece9f6; overflow: hidden; margin: 9px 0 6px; }
+.conc-bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--roxo), var(--azul)); border-radius: 999px; }
+.conc-sub { font-size: .84rem; color: var(--texto-suave); }
 .vazio { text-align: center; padding: 44px 20px; color: var(--texto-suave); }
 
 /* ---- Rodapé (escuro, com o brasão completo) ---- */

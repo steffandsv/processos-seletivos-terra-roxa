@@ -1,0 +1,36 @@
+<%- include('partials/head') %>
+<%
+  function fmtRatio(r){ return r === null ? null : r.toFixed(1).replace('.', ','); }
+  var maxInsc = Math.max(1, ...linhas.map(function(l){ return l.inscritos; }));
+%>
+<p class="meta"><a href="/editais/<%= edital.id %>">&larr; <%= edital.numero %></a></p>
+<h1>Concorrência por vaga</h1>
+<p class="muted"><%= edital.numero %> — <%= edital.titulo %></p>
+<div class="aviso-box" style="margin-bottom:16px">
+  A <strong>concorrência</strong> é o número de candidatos inscritos por vaga (considerando inscrições ativas).
+  Total de inscrições ativas: <strong><%= totalInscritos %></strong>. Clique em um cargo para ver a lista de inscritos.
+</div>
+
+<% if (linhas.length === 0) { %>
+  <div class="card vazio">Nenhum cargo cadastrado.</div>
+<% } else { %>
+  <div class="conc-lista">
+    <% linhas.forEach(function(l){
+       var rtxt = fmtRatio(l.ratio);
+       var pct = l.ratio !== null ? Math.round((l.ratio / maxRatio) * 100) : Math.round((l.inscritos / maxInsc) * 100);
+       if (pct < 3 && l.inscritos > 0) pct = 3;
+    %>
+      <a class="conc-row" href="/editais/<%= edital.id %>/inscritos?cargo=<%= l.cargo.id %>">
+        <div class="conc-top">
+          <span class="conc-nome"><%= l.cargo.nome %></span>
+          <span class="conc-ratio">
+            <% if (rtxt !== null) { %><%= rtxt %> <small>por vaga</small><% } else { %><small>Cadastro de reserva</small><% } %>
+          </span>
+        </div>
+        <div class="conc-bar"><span style="width: <%= pct %>%"></span></div>
+        <div class="conc-sub"><strong><%= l.inscritos %></strong> inscrito(s) · <%= l.vagas %> vaga(s) · ver lista &rarr;</div>
+      </a>
+    <% }); %>
+  </div>
+<% } %>
+<%- include('partials/footer') %>
