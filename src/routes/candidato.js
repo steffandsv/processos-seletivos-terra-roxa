@@ -4,7 +4,6 @@ import prisma from '../db.js';
 import config from '../config.js';
 import {
   requireCandidato,
-  requireCandidatoVerificado,
   csrfGuard,
   validarCsrf,
   limparSessao,
@@ -20,13 +19,14 @@ import {
   subpastaDoEdital,
 } from '../lib/web.js';
 import { salvarArquivo, lerArquivo, removerArquivo } from '../lib/upload.js';
-import { gerarProtocolo } from '../lib/crypto.js';
+import { gerarProtocolo, tokenAleatorio, hashToken } from '../lib/crypto.js';
 import { gerarEspelhoPdf } from '../lib/pdf.js';
 import { registrarAuditoria } from '../lib/audit.js';
 import {
   enviarConfirmacaoInscricao,
   enviarProtocoloRecurso,
   enviarNotificacaoStatus,
+  enviarVerificacaoEmail,
 } from '../lib/email.js';
 
 function montarEndereco(body) {
@@ -67,21 +67,38 @@ export default async function rotasCandidato(fastify) {
       return reply.render('candidato-conta', { titulo: 'Minha conta', candidato, erros: errosZod(parsed), valores: body });
     }
     const d = parsed.data;
-    const atualizado = await prisma.candidato.update({
-      where: { id: candidato.id },
-      data: {
-        nomeCompleto: d.nomeCompleto,
-        telefone: d.telefone || null,
-        endereco: enderecoVazio(d.endereco) ? undefined : d.endereco,
-        temDeficiencia: d.temDeficiencia || false,
-        descricaoDeficiencia: d.temDeficiencia ? (d.descricaoDeficiencia || null) : null,
-      },
-    });
-    if (atualizado.nomeCompleto !== request.sessao.nome) {
+    const emailMudou = d.email !== candidato.email;
+    if (emailMudou) {
+      const existe = await prisma.candidato.findFirst({ where: { email: d.email, NOT: { id: candidato.id } } });
+      if (existe) {
+        reply.code(409);
+        return reply.render('candidato-conta', { titulo: 'Minha conta', candidato, erros: { email: 'Já existe uma conta com este e-mail.' }, valores: body });
+      }
+    }
+    const dados = {
+      nomeCompleto: d.nomeCompleto,
+      telefone: d.telefone || null,
+      endereco: enderecoVazio(d.endereco) ? undefined : d.endereco,
+      temDeficiencia: d.temDeficiencia || false,
+      descricaoDeficiencia: d.temDeficiencia ? (d.descricaoDeficiencia || null) : null,
+    };
+    let token = null;
+    if (emailMudou) {
+      token = tokenAleatorio(32);
+      dados.email = d.email;
+      dados.emailVerificado = false; // novo e-mail entra como não confirmado (confirmação é opcional)
+      dados.emailTokenHash = hashToken(token);
+      dados.emailTokenExpiraEm = new Date(Date.now() + 48 * 60 * 60 * 1000);
+    }
+    const atualizado = await prisma.candidato.update({ where: { id: candidato.id }, data: dados });
+    if (emailMudou) {
+      await enviarVerificacaoEmail({ candidato: atualizado, url: `${config.baseUrl}/verificar-email?token=${token}` }).catch(() => {});
+      setSessao(reply, { ...request.sessao, nome: atualizado.nomeCompleto, emailVerificado: false });
+    } else if (atualizado.nomeCompleto !== request.sessao.nome) {
       setSessao(reply, { ...request.sessao, nome: atualizado.nomeCompleto });
     }
-    await registrarAuditoria({ ator: 'candidato', atorId: candidato.id, acao: 'candidato.perfil_atualizado', entidade: 'candidato', entidadeId: candidato.id, ip: request.ip });
-    reply.flash('sucesso', 'Dados atualizados.');
+    await registrarAuditoria({ ator: 'candidato', atorId: candidato.id, acao: emailMudou ? 'candidato.email_alterado' : 'candidato.perfil_atualizado', entidade: 'candidato', entidadeId: candidato.id, detalhes: emailMudou ? { de: candidato.email, para: d.email } : undefined, ip: request.ip });
+    reply.flash('sucesso', emailMudou ? 'Dados atualizados. Enviamos um link de confirmação para o novo e-mail (a confirmação é opcional — você já pode se inscrever).' : 'Dados atualizados.');
     return reply.redirect('/minha-conta');
   });
 
@@ -201,7 +218,7 @@ export default async function rotasCandidato(fastify) {
   });
 
   // ===================== Inscrição =====================
-  fastify.get('/editais/:id/inscrever', { preHandler: requireCandidatoVerificado }, async (request, reply) => {
+  fastify.get('/editais/:id/inscrever', { preHandler: requireCandidato }, async (request, reply) => {
     const edital = await prisma.edital.findUnique({ where: { id: Number(request.params.id) }, include: { cargos: { orderBy: { nome: 'asc' } } } });
     if (!edital || !inscricoesAbertas(edital)) {
       reply.flash('erro', 'As inscrições para este edital não estão abertas.');
@@ -218,7 +235,7 @@ export default async function rotasCandidato(fastify) {
     return reply.render('candidato-inscrever', { titulo: `Inscrição — ${edital.numero}`, edital, flags, cargosDisponiveis: edital.cargos.filter((c) => !idsInscritos.has(c.id)), erros: {} });
   });
 
-  fastify.post('/editais/:id/inscrever', { preHandler: requireCandidatoVerificado }, async (request, reply) => {
+  fastify.post('/editais/:id/inscrever', { preHandler: requireCandidato }, async (request, reply) => {
     const editalId = Number(request.params.id);
     const edital = await prisma.edital.findUnique({ where: { id: editalId }, include: { cargos: true } });
     if (!edital || !inscricoesAbertas(edital)) {

@@ -64,6 +64,12 @@ export default async function adminInscricoes(fastify) {
     }
 
     const atualizada = await prisma.inscricao.update({ where: { id: insc.id }, data: { status: 'homologada', motivoIndeferimento: null, reenvioAteEm: null } });
+    // Ao homologar, o admin já validou a identidade pelo documento — a conta
+    // passa a ser considerada CONFIRMADA (mesmo que o e-mail nunca tenha sido verificado).
+    if (!insc.candidato.emailVerificado) {
+      await prisma.candidato.update({ where: { id: insc.candidato.id }, data: { emailVerificado: true, emailTokenHash: null, emailTokenExpiraEm: null } });
+      await registrarAuditoria({ ator: 'admin', atorId: request.sessao.id, acao: 'candidato.confirmado_por_homologacao', entidade: 'candidato', entidadeId: insc.candidato.id, ip: request.ip });
+    }
     const espelho = await gerarEspelhoPdf({ inscricao: atualizada, candidato: insc.candidato, edital: insc.edital, cargo: insc.cargo, documentos: insc.documentos, atendimento: insc.atendimentoEspecial });
     await enviarInscricaoHomologada({ inscricao: atualizada, candidato: insc.candidato, edital: insc.edital, cargo: insc.cargo, espelhoPdf: espelho });
     await registrarAuditoria({ ator: 'admin', atorId: request.sessao.id, acao: 'inscricao.homologada', entidade: 'inscricao', entidadeId: insc.id, ip: request.ip });

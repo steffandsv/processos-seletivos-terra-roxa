@@ -9,8 +9,9 @@
 <h1>Minha conta</h1>
 
 <% if (!candidato.emailVerificado) { %>
-  <div class="flash flash-aviso" role="alert">
-    Seu e-mail ainda não foi confirmado. Você precisa confirmá-lo para se inscrever.
+  <div class="flash flash-info" role="alert">
+    Seu e-mail ainda não foi confirmado — mas <strong>isso é opcional</strong>: você já pode se inscrever normalmente.
+    Se quiser confirmar mesmo assim, reenvie o link (e confira a caixa de <strong>spam</strong>).
     <form action="/reenviar-verificacao" method="post" style="display:inline">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <button class="btn pequeno" type="submit">Reenviar link de confirmação</button>
@@ -22,7 +23,12 @@
   <h2>Dados cadastrais</h2>
   <form action="/minha-conta" method="post" novalidate>
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-    <dl class="dados"><dt>CPF</dt><dd><%= fmt.formatarCpf(candidato.cpf) %></dd><dt>E-mail</dt><dd><%= candidato.email %> <%= candidato.emailVerificado ? '✅' : '⏳' %></dd></dl>
+    <dl class="dados"><dt>CPF</dt><dd><%= fmt.formatarCpf(candidato.cpf) %></dd></dl>
+
+    <label for="email">E-mail <%= candidato.emailVerificado ? '✅ confirmado' : '⏳ não confirmado (opcional)' %></label>
+    <input id="email" name="email" type="email" required value="<%= val('email', candidato.email) %>" <%= erros.email ? 'aria-invalid="true"' : '' %>>
+    <p class="dica">Você pode corrigir/trocar seu e-mail aqui. Se mudar, enviaremos um novo link de confirmação (opcional) — confira o spam.</p>
+    <% if (erros.email) { %><p class="erro-campo"><%= erros.email %></p><% } %>
 
     <label for="nomeCompleto">Nome completo</label>
     <input id="nomeCompleto" name="nomeCompleto" required value="<%= val('nomeCompleto', candidato.nomeCompleto) %>">

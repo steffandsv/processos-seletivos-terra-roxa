@@ -136,17 +136,6 @@ export async function requireCandidato(request, reply) {
   }
 }
 
-export async function requireCandidatoVerificado(request, reply) {
-  if (request.sessao?.tipo !== 'candidato') {
-    reply.flash('erro', 'Faça login para continuar.');
-    return reply.redirect(`/login?next=${encodeURIComponent(request.url)}`);
-  }
-  if (!request.sessao.emailVerificado) {
-    reply.flash('aviso', 'Confirme seu e-mail antes de se inscrever.');
-    return reply.redirect('/minha-conta');
-  }
-}
-
 export async function requireAdmin(request, reply) {
   if (request.sessao?.tipo !== 'admin') {
     reply.flash('erro', 'Acesso restrito. Faça login como administrador.');

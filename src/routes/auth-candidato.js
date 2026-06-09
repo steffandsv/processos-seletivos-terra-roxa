@@ -81,7 +81,7 @@ export default async function rotasAuthCandidato(fastify) {
     await enviarVerificacaoEmail({ candidato, url: `${config.baseUrl}/verificar-email?token=${token}` });
 
     setSessao(reply, { tipo: 'candidato', id: candidato.id, nome: candidato.nomeCompleto, emailVerificado: false });
-    reply.flash('sucesso', 'Conta criada! Enviamos um link de confirmação para o seu e-mail.');
+    reply.flash('sucesso', 'Conta criada! Você já pode se inscrever. (Enviamos um link de confirmação opcional para o seu e-mail — confira o spam, mas não é obrigatório.)');
     return reply.redirect('/minha-conta');
   });
 

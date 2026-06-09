@@ -44,6 +44,7 @@ export const loginSchema = z.object({
 
 export const perfilSchema = z.object({
   nomeCompleto: z.string().trim().min(3).max(160),
+  email: z.string().trim().toLowerCase().email('E-mail inválido').max(160),
   telefone: strTrim(20).optional().or(z.literal('')),
   endereco: enderecoSchema.optional(),
   temDeficiencia: z.coerce.boolean().optional().default(false),
