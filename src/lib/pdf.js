@@ -47,14 +47,17 @@ export async function gerarEspelhoPdf({ inscricao, candidato, edital, cargo, doc
   // Faixa com número da inscrição
   doc.moveDown(0.8);
   const boxY = doc.y;
-  doc.rect(doc.page.margins.left, boxY, doc.page.width - doc.page.margins.left - doc.page.margins.right, 46).fill('#efe9ff');
+  doc.rect(doc.page.margins.left, boxY, doc.page.width - doc.page.margins.left - doc.page.margins.right, 50).fill('#efe9ff');
   doc.fillColor(ROXO).font('Helvetica-Bold').fontSize(10).text('INSCRIÇÃO Nº', doc.page.margins.left + 14, boxY + 9);
-  doc.fillColor(AZUL).fontSize(20).text(inscricao.numeroInscricao, doc.page.margins.left + 14, boxY + 20);
-  doc.font('Helvetica-Bold').fontSize(10).fillColor(ROXO).text('SITUAÇÃO', doc.page.width - doc.page.margins.right - 160, boxY + 9, { width: 146, align: 'right' });
-  doc.fillColor(AZUL).fontSize(14).text(ROTULO_STATUS_INSCRICAO[inscricao.status] || inscricao.status, doc.page.width - doc.page.margins.right - 160, boxY + 22, { width: 146, align: 'right' });
-  doc.y = boxY + 60;
+  doc.fillColor(AZUL).fontSize(20).text(inscricao.numeroInscricao, doc.page.margins.left + 14, boxY + 22);
+  doc.font('Helvetica-Bold').fontSize(10).fillColor(ROXO).text('SITUAÇÃO', doc.page.width - doc.page.margins.right - 170, boxY + 8, { width: 156, align: 'right' });
+  doc.fillColor(AZUL).fontSize(14).text(ROTULO_STATUS_INSCRICAO[inscricao.status] || inscricao.status, doc.page.width - doc.page.margins.right - 170, boxY + 21, { width: 156, align: 'right' });
+  doc.font('Helvetica').fontSize(6.5).fillColor(CINZA).text('na data de emissão', doc.page.width - doc.page.margins.right - 170, boxY + 39, { width: 156, align: 'right' });
+  doc.y = boxY + 64;
   doc.x = doc.page.margins.left;
-  doc.fillColor('#0f172a');
+  doc.font('Helvetica-Oblique').fontSize(8.5).fillColor(CINZA).text('A SITUAÇÃO acima reflete o andamento da inscrição na data de emissão deste documento (ver "Emitido em", no topo). A situação atualizada está sempre disponível no portal, em "Minhas inscrições".', { align: 'left' });
+  doc.moveDown(0.3);
+  doc.font('Helvetica').fillColor('#0f172a');
 
   // Edital / cargo
   secao(doc, 'Edital');

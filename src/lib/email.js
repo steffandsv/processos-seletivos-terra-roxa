@@ -201,7 +201,7 @@ export async function enviarInscricaoHomologada({ inscricao, candidato, edital, 
     paragrafos: [
       `Olá, <strong>${candidato.nomeCompleto}</strong>.`,
       `Sua inscrição <strong>nº ${inscricao.numeroInscricao}</strong> no edital <strong>${edital.numero}</strong> (cargo ${cargo.nome}) foi <strong>homologada</strong>.`,
-      'O espelho atualizado segue em anexo.',
+      'O espelho atualizado (com a situação <strong>Homologada</strong>) segue em anexo. A versão sempre atual também está no portal, em "Minhas inscrições".',
     ],
     botao: { texto: 'Ver inscrição', url: `${config.baseUrl}/minhas-inscricoes/${inscricao.id}` },
   });
