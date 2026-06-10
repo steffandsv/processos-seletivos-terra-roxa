@@ -1,0 +1,45 @@
+<%- include('partials/head') %>
+<h1>Candidatos</h1>
+<p class="muted">Total: <%= total %>. Busque por nome, CPF ou e-mail.</p>
+
+<form method="get" action="/admin/candidatos" class="card" style="display:flex;gap:12px;align-items:flex-end">
+  <div style="flex:1;min-width:240px">
+    <label for="busca">Buscar</label>
+    <input id="busca" name="busca" value="<%= busca %>" placeholder="Nome, CPF ou e-mail" autofocus>
+  </div>
+  <div class="acoes" style="margin:0">
+    <button class="btn" type="submit">Buscar</button>
+    <% if (busca) { %><a class="btn secundario" href="/admin/candidatos">Limpar</a><% } %>
+  </div>
+</form>
+
+<% if (candidatos.length === 0) { %>
+  <div class="card vazio"><%= busca ? 'Nenhum candidato encontrado para a busca.' : 'Nenhum candidato cadastrado.' %></div>
+<% } else { %>
+  <div class="card">
+    <div class="tabela-wrap">
+      <table>
+        <thead><tr><th>Nome</th><th>CPF</th><th>E-mail</th><th>Conta</th><th>Inscrições</th><th>Cadastro</th><th></th></tr></thead>
+        <tbody>
+          <% candidatos.forEach(function(c){ %>
+            <tr>
+              <td><%= c.nomeCompleto %></td>
+              <td><%= fmt.formatarCpf(c.cpf) %></td>
+              <td><%= c.email %></td>
+              <td><span class="badge <%= c.emailVerificado ? 'badge-ok' : 'badge-neutro' %>"><%= c.emailVerificado ? 'Confirmada' : 'Não confirmada' %></span></td>
+              <td><%= c._count.inscricoes %></td>
+              <td><%= fmt.fmtData(c.criadoEm) %></td>
+              <td><a href="/admin/candidatos/<%= c.id %>">Gerenciar</a></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <div class="acoes" style="justify-content:space-between">
+      <% if (pagina > 1) { %><a class="btn secundario pequeno" href="/admin/candidatos?pagina=<%= pagina-1 %><%= busca ? ('&busca='+encodeURIComponent(busca)) : '' %>">&larr; Anteriores</a><% } else { %><span></span><% } %>
+      <span class="muted">Página <%= pagina %></span>
+      <% if (pagina*porPagina < total) { %><a class="btn secundario pequeno" href="/admin/candidatos?pagina=<%= pagina+1 %><%= busca ? ('&busca='+encodeURIComponent(busca)) : '' %>">Próximas &rarr;</a><% } else { %><span></span><% } %>
+    </div>
+  </div>
+<% } %>
+<%- include('partials/footer') %>

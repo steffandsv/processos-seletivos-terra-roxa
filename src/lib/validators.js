@@ -120,6 +120,21 @@ export const indeferimentoSchema = z.object({
   motivo: z.string().trim().min(3, 'Informe o motivo do indeferimento').max(2000),
 });
 
+export const adminCandidatoSchema = z.object({
+  nomeCompleto: z.string().trim().min(3, 'Informe o nome completo').max(160),
+  email: z.string().trim().toLowerCase().email('E-mail inválido').max(160),
+  telefone: strTrim(20).optional().or(z.literal('')),
+  endereco: enderecoSchema.optional(),
+  descricaoDeficiencia: strTrim(500).optional().or(z.literal('')),
+});
+
+export const adminSenhaSchema = z
+  .object({
+    novaSenha: senhaSchema,
+    confirmaSenha: z.string(),
+  })
+  .refine((d) => d.novaSenha === d.confirmaSenha, { message: 'As senhas não conferem', path: ['confirmaSenha'] });
+
 export const publicacaoSchema = z.object({
   tipo: z.enum([
     'edital',

@@ -22,6 +22,7 @@
         <% if (sessao && sessao.tipo === 'admin') { %>
           <a href="/admin" <%= currentPath === '/admin' ? 'aria-current="page"' : '' %>>Painel</a>
           <a href="/admin/editais" <%= currentPath.startsWith('/admin/editais') ? 'aria-current="page"' : '' %>>Editais</a>
+          <a href="/admin/candidatos" <%= currentPath.startsWith('/admin/candidatos') ? 'aria-current="page"' : '' %>>Candidatos</a>
           <a href="/admin/auditoria" <%= currentPath.startsWith('/admin/auditoria') ? 'aria-current="page"' : '' %>>Auditoria</a>
           <a href="/admin/configuracoes" <%= currentPath.startsWith('/admin/configuracoes') ? 'aria-current="page"' : '' %>>Configurações</a>
           <span class="nav-user">👤 <%= sessao.nome %></span>
