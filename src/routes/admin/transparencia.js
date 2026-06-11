@@ -23,7 +23,7 @@ export default async function adminTransparencia(fastify) {
     if (!edital) { reply.code(404); return reply.render('nao-encontrado', { titulo: 'Edital não encontrado' }); }
     const { fields, files } = await lerMultipart(request);
     if (!validarCsrf(request, fields._csrf)) { reply.code(403); return reply.render('erro', { titulo: 'Erro de validação', mensagem: 'Requisição inválida (CSRF).', voltarUrl: `/admin/editais/${id}/publicacoes` }); }
-    const parsed = publicacaoSchema.safeParse({ tipo: fields.tipo, titulo: fields.titulo });
+    const parsed = publicacaoSchema.safeParse({ tipo: fields.tipo || undefined, titulo: fields.titulo });
     const arquivo = files.arquivo;
     const erros = parsed.success ? {} : errosZod(parsed);
     if (!arquivo) erros.arquivo = 'Selecione um arquivo (PDF, CSV ou imagem).';

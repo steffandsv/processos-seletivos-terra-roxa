@@ -57,7 +57,7 @@
     <h2>Atalhos</h2>
     <p>
       <a class="btn secundario pequeno" href="/admin/editais/<%= edital.id %>/inscricoes">Fila de inscrições (<%= stats.total %>)</a>
-      <a class="btn secundario pequeno" href="/admin/editais/<%= edital.id %>/publicacoes">Publicações (<%= edital._count.publicacoes %>)</a>
+      <a class="btn secundario pequeno" href="/admin/editais/<%= edital.id %>/publicacoes">Documentos (<%= edital._count.publicacoes %>)</a>
       <a class="btn secundario pequeno" href="/admin/editais/<%= edital.id %>/recursos">Recursos<% if (recursosAbertos) { %> (<%= recursosAbertos %> abertos)<% } %></a>
       <a class="btn secundario pequeno" href="/admin/editais/<%= edital.id %>/relatorio">Relatório</a>
       <a class="btn secundario pequeno" href="/editais/<%= edital.id %>/inscritos" target="_blank">Lista pública</a>

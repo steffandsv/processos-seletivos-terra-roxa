@@ -55,21 +55,21 @@
 </div>
 
 <div class="card">
-  <h2>Publicações</h2>
-  <p class="muted">Espelho de transparência. Não substitui o Diário Oficial.</p>
+  <h2>Documentos e publicações</h2>
+  <p class="muted">Retificações, atas, gabaritos, resultados e demais documentos do processo. Espelho de transparência — não substitui o Diário Oficial.</p>
   <% if (edital.publicacoes.length === 0) { %>
-    <p class="muted">Nenhuma publicação ainda.</p>
+    <p class="muted">Nenhum documento publicado ainda.</p>
   <% } else { %>
     <div class="tabela-wrap">
       <table>
-        <thead><tr><th>Tipo</th><th>Título</th><th>Publicado em</th><th>Arquivo</th></tr></thead>
+        <thead><tr><th>Documento</th><th>Categoria</th><th>Publicado em</th><th></th></tr></thead>
         <tbody>
           <% edital.publicacoes.forEach(function(p){ %>
             <tr>
-              <td><span class="badge badge-info"><%= fmt.ROTULO_TIPO_PUBLICACAO[p.tipo] || p.tipo %></span></td>
-              <td><%= p.titulo %></td>
+              <td><strong><%= p.titulo %></strong></td>
+              <td><% if (p.tipo && p.tipo !== 'outro') { %><span class="badge badge-info"><%= fmt.ROTULO_TIPO_PUBLICACAO[p.tipo] || p.tipo %></span><% } else { %><span class="muted">—</span><% } %></td>
               <td><%= fmt.fmtDataHora(p.publicadoEm) %></td>
-              <td><a href="/publicacoes/<%= p.id %>/arquivo" target="_blank" rel="noopener">Abrir</a></td>
+              <td><a class="btn secundario pequeno" href="/publicacoes/<%= p.id %>/arquivo" target="_blank" rel="noopener">Baixar</a></td>
             </tr>
           <% }); %>
         </tbody>

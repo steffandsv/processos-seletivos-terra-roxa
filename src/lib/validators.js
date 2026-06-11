@@ -136,17 +136,21 @@ export const adminSenhaSchema = z
   .refine((d) => d.novaSenha === d.confirmaSenha, { message: 'As senhas não conferem', path: ['confirmaSenha'] });
 
 export const publicacaoSchema = z.object({
-  tipo: z.enum([
-    'edital',
-    'retificacao',
-    'gabarito_preliminar',
-    'gabarito_definitivo',
-    'resultado',
-    'classificacao',
-    'convocacao',
-    'outro',
-  ]),
-  titulo: z.string().trim().min(2, 'Informe um título').max(200),
+  // Categoria é opcional — basta enviar o arquivo e dar um nome.
+  tipo: z
+    .enum([
+      'edital',
+      'retificacao',
+      'gabarito_preliminar',
+      'gabarito_definitivo',
+      'resultado',
+      'classificacao',
+      'convocacao',
+      'outro',
+    ])
+    .optional()
+    .default('outro'),
+  titulo: z.string().trim().min(2, 'Dê um nome ao documento').max(200),
 });
 
 export const configSmtpSchema = z.object({
