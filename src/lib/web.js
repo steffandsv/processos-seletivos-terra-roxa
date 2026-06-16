@@ -75,16 +75,22 @@ export function parseDataInput(valor) {
 /**
  * Cria a inscrição gerando um número sequencial por edital, com retry em caso
  * de colisão de unicidade (editalId, numeroInscricao).
+ *
+ * Usa MAX(numero)+1 (e não COUNT+1): assim é robusto a exclusões de inscrições
+ * (que deixam lacunas) — o COUNT cairia abaixo do maior número e colidiria.
  */
 export async function criarInscricaoComNumero(dados) {
-  for (let tentativa = 0; tentativa < 5; tentativa++) {
-    const total = await prisma.inscricao.count({ where: { editalId: dados.editalId } });
-    const numero = String(total + 1 + tentativa).padStart(5, '0');
+  for (let tentativa = 0; tentativa < 10; tentativa++) {
+    const rows = await prisma.$queryRaw`
+      SELECT COALESCE(MAX(numero_inscricao::int), 0) AS max
+      FROM inscricao WHERE edital_id = ${dados.editalId}`;
+    const base = Number(rows?.[0]?.max ?? 0);
+    const numero = String(base + 1 + tentativa).padStart(5, '0');
     try {
       return await prisma.inscricao.create({ data: { ...dados, numeroInscricao: numero } });
     } catch (e) {
       if (e.code === 'P2002' && Array.isArray(e.meta?.target) && e.meta.target.includes('numero_inscricao')) {
-        continue; // colisão de número — tenta o próximo
+        continue; // colisão (concorrência) — tenta o próximo número
       }
       throw e;
     }
