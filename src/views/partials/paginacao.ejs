@@ -1,0 +1,18 @@
+<%
+  // Espera: pagina, porPagina, total, pagBase (caminho), pagQuery (filtros a preservar)
+  var _totalPag = Math.max(1, Math.ceil(total / porPagina));
+  if (total > porPagina) {
+    var _qs = function (p) {
+      var params = Object.assign({}, pagQuery || {}, { pagina: p });
+      return Object.keys(params)
+        .filter(function (k) { return params[k] !== '' && params[k] != null; })
+        .map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); })
+        .join('&');
+    };
+%>
+<div class="acoes" style="justify-content:space-between;align-items:center;margin-top:14px">
+  <% if (pagina > 1) { %><a class="btn secundario pequeno" href="<%= pagBase %>?<%= _qs(pagina - 1) %>">&larr; Anteriores</a><% } else { %><span></span><% } %>
+  <span class="muted">Página <%= pagina %> de <%= _totalPag %> · <%= total %> registro(s)</span>
+  <% if (pagina < _totalPag) { %><a class="btn secundario pequeno" href="<%= pagBase %>?<%= _qs(pagina + 1) %>">Próximas &rarr;</a><% } else { %><span></span><% } %>
+</div>
+<% } %>

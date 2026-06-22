@@ -4,10 +4,11 @@ import config from '../../config.js';
 import { csrfGuard } from '../../plugins/auth.js';
 import { indeferimentoSchema, errosZod } from '../../lib/validators.js';
 import { normalizarConfigFases } from '../../lib/fases.js';
+import { paginacao } from '../../lib/web.js';
 import { lerArquivo } from '../../lib/upload.js';
 import { gerarEspelhoPdf } from '../../lib/pdf.js';
 import { registrarAuditoria } from '../../lib/audit.js';
-import { enviarInscricaoHomologada, enviarInscricaoIndeferida } from '../../lib/email.js';
+import { enviarInscricaoHomologada, enviarInscricaoIndeferida, enviarNotificacaoStatus } from '../../lib/email.js';
 
 const STATUS_VALIDOS = ['enviada', 'em_analise', 'homologada', 'indeferida', 'cancelada'];
 
@@ -24,12 +25,17 @@ export default async function adminInscricoes(fastify) {
     if (filtroStatus) where.status = filtroStatus;
     if (filtroCargo) where.cargoId = filtroCargo;
 
-    const inscricoes = await prisma.inscricao.findMany({
-      where,
-      include: { candidato: { select: { nomeCompleto: true, cpf: true } }, cargo: { select: { nome: true } }, _count: { select: { documentos: true } } },
-      orderBy: [{ status: 'asc' }, { criadoEm: 'asc' }],
-    });
-    return reply.render('admin-inscricoes', { titulo: `Inscrições — ${edital.numero}`, edital, inscricoes, filtroStatus, filtroCargo });
+    const { pagina, porPagina, skip, take } = paginacao(request.query, 50);
+    const [inscricoes, total] = await Promise.all([
+      prisma.inscricao.findMany({
+        where,
+        include: { candidato: { select: { nomeCompleto: true, cpf: true } }, cargo: { select: { nome: true } }, _count: { select: { documentos: true } } },
+        orderBy: [{ status: 'asc' }, { criadoEm: 'asc' }],
+        skip, take,
+      }),
+      prisma.inscricao.count({ where }),
+    ]);
+    return reply.render('admin-inscricoes', { titulo: `Inscrições — ${edital.numero}`, edital, inscricoes, filtroStatus, filtroCargo, pagina, porPagina, total });
   });
 
   // Detalhe de uma inscrição
@@ -95,6 +101,18 @@ export default async function adminInscricoes(fastify) {
     await enviarInscricaoIndeferida({ inscricao: atualizada, candidato: insc.candidato, edital: insc.edital, cargo: insc.cargo, motivo: parsed.data.motivo, reenvioUrl, reenvioAteEm });
     await registrarAuditoria({ ator: 'admin', atorId: request.sessao.id, acao: 'inscricao.indeferida', entidade: 'inscricao', entidadeId: insc.id, detalhes: { motivo: parsed.data.motivo, reenvioAteEm }, ip: request.ip });
     reply.flash('sucesso', `Inscrição ${insc.numeroInscricao} indeferida. Candidato notificado${reenvioUrl ? ' com janela de reenvio' : ''}.`);
+    return reply.redirect(`/admin/inscricoes/${insc.id}`);
+  });
+
+  // Cancelar inscrição (admin) — mantém histórico; candidato pode reinscrever em outra vaga
+  fastify.post('/inscricoes/:id/cancelar', { preHandler: csrfGuard }, async (request, reply) => {
+    const insc = await carregarCompleta(Number(request.params.id));
+    if (!insc) { reply.code(404); return reply.render('nao-encontrado', { titulo: 'Inscrição não encontrada' }); }
+    if (insc.status === 'cancelada') { reply.flash('info', 'Inscrição já estava cancelada.'); return reply.redirect(`/admin/inscricoes/${insc.id}`); }
+    await prisma.inscricao.update({ where: { id: insc.id }, data: { status: 'cancelada' } });
+    await registrarAuditoria({ ator: 'admin', atorId: request.sessao.id, acao: 'inscricao.cancelada_admin', entidade: 'inscricao', entidadeId: insc.id, detalhes: { statusAnterior: insc.status }, ip: request.ip });
+    await enviarNotificacaoStatus({ candidato: insc.candidato, inscricao: insc, edital: insc.edital, titulo: 'Inscrição cancelada', mensagem: `Sua inscrição nº ${insc.numeroInscricao} (${insc.cargo.nome}) foi cancelada pela administração. Em caso de dúvida, entre em contato.`, template: 'inscricao_cancelada' }).catch(() => {});
+    reply.flash('sucesso', `Inscrição ${insc.numeroInscricao} cancelada.`);
     return reply.redirect(`/admin/inscricoes/${insc.id}`);
   });
 }

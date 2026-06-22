@@ -63,6 +63,14 @@
     <p class="dica"><% if (flags.janela_reenvio_documento_dias > 0) { %>O candidato receberá uma janela de <%= flags.janela_reenvio_documento_dias %> dia(s) para reenviar a documentação.<% } else { %>Reenvio desativado para este edital.<% } %></p>
     <div class="acoes"><button class="btn perigo" type="submit">Indeferir e notificar</button></div>
   </form>
+
+  <hr>
+  <h3>Cancelar inscrição</h3>
+  <p class="dica">Cancela a inscrição (fica como histórico). O candidato pode então se inscrever em outra vaga.</p>
+  <form action="/admin/inscricoes/<%= insc.id %>/cancelar" method="post" onsubmit="return confirm('Cancelar esta inscrição?');">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="acoes"><button class="btn perigo" type="submit">Cancelar inscrição</button></div>
+  </form>
 </div>
 <% } %>
 

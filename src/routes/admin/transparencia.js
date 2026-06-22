@@ -56,12 +56,18 @@ export default async function adminTransparencia(fastify) {
     const id = Number(request.params.id);
     const edital = await prisma.edital.findUnique({ where: { id } });
     if (!edital) { reply.code(404); return reply.render('nao-encontrado', { titulo: 'Edital não encontrado' }); }
-    const recursos = await prisma.recurso.findMany({
-      where: { inscricao: { editalId: id } },
-      include: { inscricao: { include: { candidato: { select: { nomeCompleto: true } }, cargo: { select: { nome: true } } } } },
-      orderBy: [{ status: 'asc' }, { criadoEm: 'asc' }],
-    });
-    return reply.render('admin-recursos', { titulo: `Recursos — ${edital.numero}`, edital, recursos });
+    const where = { inscricao: { editalId: id } };
+    const { pagina, porPagina, skip, take } = paginacao(request.query, 50);
+    const [recursos, total] = await Promise.all([
+      prisma.recurso.findMany({
+        where,
+        include: { inscricao: { include: { candidato: { select: { nomeCompleto: true } }, cargo: { select: { nome: true } } } } },
+        orderBy: [{ status: 'asc' }, { criadoEm: 'asc' }],
+        skip, take,
+      }),
+      prisma.recurso.count({ where }),
+    ]);
+    return reply.render('admin-recursos', { titulo: `Recursos — ${edital.numero}`, edital, recursos, pagina, porPagina, total });
   });
 
   fastify.get('/recursos/:id', async (request, reply) => {

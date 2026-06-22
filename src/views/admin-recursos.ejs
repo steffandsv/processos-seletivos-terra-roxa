@@ -25,6 +25,7 @@
         </tbody>
       </table>
     </div>
+    <%- include('partials/paginacao', { pagina: pagina, porPagina: porPagina, total: total, pagBase: '/admin/editais/' + edital.id + '/recursos', pagQuery: {} }) %>
   </div>
 <% } %>
 <%- include('partials/footer') %>

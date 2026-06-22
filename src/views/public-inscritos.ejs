@@ -42,7 +42,8 @@
         </tbody>
       </table>
     </div>
-    <p class="muted" style="margin-top:10px">Total: <%= inscritos.length %><%= cargoSel ? '' : ' (todos os cargos)' %></p>
+    <p class="muted" style="margin-top:10px">Total: <%= total %><%= cargoSel ? '' : ' (todos os cargos)' %></p>
+    <%- include('partials/paginacao', { pagina: pagina, porPagina: porPagina, total: total, pagBase: '/editais/' + edital.id + '/inscritos', pagQuery: { cargo: filtroCargo || '' } }) %>
   </div>
 <% } %>
 <%- include('partials/footer') %>

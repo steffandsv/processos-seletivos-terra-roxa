@@ -9,6 +9,7 @@ import adminInscricoes from './admin/inscricoes.js';
 import adminTransparencia from './admin/transparencia.js';
 import adminConfiguracoes from './admin/configuracoes.js';
 import adminCandidatos from './admin/candidatos.js';
+import adminExportar from './admin/exportar.js';
 
 export default async function rotasAdmin(fastify) {
   // Login / logout (sem guard)
@@ -23,5 +24,6 @@ export default async function rotasAdmin(fastify) {
     await protegido.register(adminTransparencia);
     await protegido.register(adminConfiguracoes);
     await protegido.register(adminCandidatos);
+    await protegido.register(adminExportar);
   });
 }

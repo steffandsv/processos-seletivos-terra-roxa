@@ -206,6 +206,19 @@ export default async function rotasCandidato(fastify) {
     return reply.send(pdf);
   });
 
+  // Cancelar a própria inscrição (mantém o histórico como 'cancelada' e libera
+  // a reinscrição em outra vaga do mesmo edital).
+  fastify.post('/minhas-inscricoes/:id/cancelar', { preHandler: [requireCandidato, csrfGuard] }, async (request, reply) => {
+    const insc = await inscricaoDoCandidato(Number(request.params.id), request.sessao.id, { edital: true, cargo: true, candidato: true });
+    if (!insc) { reply.code(404); return reply.render('nao-encontrado', { titulo: 'Inscrição não encontrada' }); }
+    if (insc.status === 'cancelada') { reply.flash('info', 'Esta inscrição já está cancelada.'); return reply.redirect(`/minhas-inscricoes/${insc.id}`); }
+    await prisma.inscricao.update({ where: { id: insc.id }, data: { status: 'cancelada' } });
+    await registrarAuditoria({ ator: 'candidato', atorId: request.sessao.id, acao: 'inscricao.cancelada', entidade: 'inscricao', entidadeId: insc.id, detalhes: { cargo: insc.cargo.nome, statusAnterior: insc.status }, ip: request.ip });
+    await enviarNotificacaoStatus({ candidato: insc.candidato, inscricao: insc, edital: insc.edital, titulo: 'Inscrição cancelada', mensagem: `Sua inscrição nº ${insc.numeroInscricao} (${insc.cargo.nome}) foi cancelada. Se desejar, você pode se inscrever em outra vaga deste edital.`, template: 'inscricao_cancelada' }).catch(() => {});
+    reply.flash('sucesso', 'Inscrição cancelada. Se houver outras vagas neste edital, você já pode se inscrever em uma delas.');
+    return reply.redirect(`/editais/${insc.edital.id}`);
+  });
+
   // Download do próprio documento
   fastify.get('/documentos/:id/arquivo', { preHandler: requireCandidato }, async (request, reply) => {
     const doc = await prisma.documento.findUnique({ where: { id: Number(request.params.id) }, include: { inscricao: true } });
@@ -225,9 +238,10 @@ export default async function rotasCandidato(fastify) {
       return reply.redirect(edital ? `/editais/${edital.id}` : '/');
     }
     const flags = flagsEdital(edital);
-    const jaInscrito = await prisma.inscricao.findFirst({ where: { candidatoId: request.sessao.id, editalId: edital.id } });
+    // Inscrições CANCELADAS não bloqueiam — permitem reinscrição em outra vaga.
+    const jaInscrito = await prisma.inscricao.findFirst({ where: { candidatoId: request.sessao.id, editalId: edital.id, status: { not: 'cancelada' } } });
     if (jaInscrito && !flags.permite_multiplas_vagas) {
-      reply.flash('info', 'Você já possui inscrição neste edital.');
+      reply.flash('info', 'Você já possui inscrição ativa neste edital.');
       return reply.redirect(`/minhas-inscricoes/${jaInscrito.id}`);
     }
     const cargosInscritos = await prisma.inscricao.findMany({ where: { candidatoId: request.sessao.id, editalId: edital.id }, select: { cargoId: true } });
@@ -252,13 +266,19 @@ export default async function rotasCandidato(fastify) {
     if (!cargo) erros.cargoId = 'Selecione um cargo válido.';
     if (fields.aceiteTermos !== 'on') erros.aceiteTermos = 'É necessário aceitar o termo para concluir a inscrição.';
 
-    // Unicidade conforme flag
+    // Unicidade (canceladas não contam para "inscrição ativa", mas o cargo já
+    // usado fica reservado pela chave única — então reinscrição é em OUTRA vaga).
     if (!flags.permite_multiplas_vagas) {
-      const jaInscrito = await prisma.inscricao.findFirst({ where: { candidatoId: request.sessao.id, editalId } });
-      if (jaInscrito) { reply.flash('info', 'Você já possui inscrição neste edital.'); return reply.redirect(`/minhas-inscricoes/${jaInscrito.id}`); }
-    } else if (cargo) {
-      const jaNoCargo = await prisma.inscricao.findFirst({ where: { candidatoId: request.sessao.id, cargoId } });
-      if (jaNoCargo) erros.cargoId = 'Você já está inscrito neste cargo.';
+      const ativa = await prisma.inscricao.findFirst({ where: { candidatoId: request.sessao.id, editalId, status: { not: 'cancelada' } } });
+      if (ativa) { reply.flash('info', 'Você já possui inscrição ativa neste edital.'); return reply.redirect(`/minhas-inscricoes/${ativa.id}`); }
+    }
+    if (cargo && !erros.cargoId) {
+      const noCargo = await prisma.inscricao.findFirst({ where: { candidatoId: request.sessao.id, cargoId } });
+      if (noCargo) {
+        erros.cargoId = noCargo.status === 'cancelada'
+          ? 'Você já teve uma inscrição neste cargo. Escolha outra vaga.'
+          : 'Você já está inscrito neste cargo.';
+      }
     }
 
     // Documento com foto

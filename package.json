@@ -29,8 +29,9 @@
     "@node-rs/argon2": "^2.0.2",
     "@prisma/client": "^6.5.0",
     "ejs": "^3.1.10",
+    "exceljs": "^4.4.0",
     "fastify": "^5.2.1",
-    "nodemailer": "^8.0.10",
+    "nodemailer": "^9.0.1",
     "pdfkit": "^0.16.0",
     "zod": "^3.24.2"
   },
@@ -39,5 +40,8 @@
     "eslint": "^9.21.0",
     "globals": "^16.0.0",
     "prisma": "^6.5.0"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   }
 }

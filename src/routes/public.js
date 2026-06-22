@@ -1,7 +1,7 @@
 // Portal público (§5.1): vitrine, página do edital, listas públicas,
 // download de publicações oficiais, Aviso de Privacidade e Termos.
 import prisma from '../db.js';
-import { flagsEdital, inscricoesAbertas } from '../lib/web.js';
+import { flagsEdital, inscricoesAbertas, paginacao } from '../lib/web.js';
 import { lerArquivo } from '../lib/upload.js';
 
 export default async function rotasPublicas(fastify) {
@@ -51,17 +51,22 @@ export default async function rotasPublicas(fastify) {
     const filtroCargo = request.query.cargo && edital.cargos.some((c) => c.id === Number(request.query.cargo)) ? Number(request.query.cargo) : null;
     const where = { editalId: id, status: { in: STATUS_ATIVAS } };
     if (filtroCargo) where.cargoId = filtroCargo;
-    const inscritos = await prisma.inscricao.findMany({
-      where,
-      // Selecionamos SOMENTE o necessário — nunca CPF, nunca deficiência.
-      select: {
-        numeroInscricao: true,
-        cargo: { select: { id: true, nome: true } },
-        candidato: { select: { nomeCompleto: true } },
-      },
-      orderBy: [{ cargo: { nome: 'asc' } }, { numeroInscricao: 'asc' }],
-    });
-    return reply.render('public-inscritos', { titulo: `Inscritos — ${edital.numero}`, edital, inscritos, filtroCargo });
+    const { pagina, porPagina, skip, take } = paginacao(request.query, 50);
+    const [inscritos, total] = await Promise.all([
+      prisma.inscricao.findMany({
+        where,
+        // Selecionamos SOMENTE o necessário — nunca CPF, nunca deficiência.
+        select: {
+          numeroInscricao: true,
+          cargo: { select: { id: true, nome: true } },
+          candidato: { select: { nomeCompleto: true } },
+        },
+        orderBy: [{ cargo: { nome: 'asc' } }, { numeroInscricao: 'asc' }],
+        skip, take,
+      }),
+      prisma.inscricao.count({ where }),
+    ]);
+    return reply.render('public-inscritos', { titulo: `Inscritos — ${edital.numero}`, edital, inscritos, filtroCargo, pagina, porPagina, total });
   });
 
   // Concorrência por vaga (candidatos ativos / vagas) — visão pública.

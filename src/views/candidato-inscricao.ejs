@@ -13,7 +13,18 @@
   </dl>
   <div class="acoes">
     <a class="btn secundario" href="/minhas-inscricoes/<%= insc.id %>/espelho" target="_blank" rel="noopener">Baixar espelho (PDF)</a>
+    <% if (insc.status !== 'cancelada') { %>
+      <form action="/minhas-inscricoes/<%= insc.id %>/cancelar" method="post" onsubmit="return confirm('Cancelar esta inscrição? Você poderá se inscrever em outra vaga depois. O histórico fica registrado.');" style="display:inline">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn perigo" type="submit">Cancelar inscrição</button>
+      </form>
+    <% } else { %>
+      <span class="badge badge-neutro">Inscrição cancelada</span>
+    <% } %>
   </div>
+  <% if (insc.status !== 'cancelada') { %>
+    <p class="dica">Quer trocar de vaga? Cancele esta inscrição e inscreva-se em outra. O cancelamento fica no seu histórico.</p>
+  <% } %>
 </div>
 
 <% if (insc.status === 'indeferida') { %>
